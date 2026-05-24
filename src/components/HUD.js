@@ -1,1 +1,7 @@
-"use strict";
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+export default function HUD({ time, status }) {
+    const isSitting = status === "sitting";
+    return (_jsxs("div", { className: "flex items-center gap-6 px-6 py-3 rounded-xl bg-stone-900 border border-stone-700 shadow-lg font-mono select-none", children: [_jsxs("div", { className: "flex flex-col items-center gap-0.5", children: [_jsx("span", { className: "text-stone-500 text-xs uppercase tracking-widest", children: "time seated" }), _jsx("span", { className: `text-3xl tabular-nums font-bold tracking-tight transition-colors duration-300 ${isSitting ? "text-yellow-400" : "text-stone-300"}`, children: time })] }), _jsx("div", { className: "w-px h-10 bg-stone-700" }), _jsxs("div", { className: "flex flex-col items-center gap-0.5", children: [_jsx("span", { className: "text-stone-500 text-xs uppercase tracking-widest", children: "status" }), _jsx("span", { className: `px-3 py-1 rounded-full text-sm font-semibold transition-all duration-200 ${isSitting
+                            ? "bg-yellow-400/15 text-yellow-400 ring-1 ring-yellow-400/40"
+                            : "bg-stone-800 text-stone-400 ring-1 ring-stone-600"}`, children: isSitting ? "🪑 sitting" : "🚶 walking" })] }), !isSitting && (_jsxs("div", { className: "flex flex-col items-center gap-0.5", children: [_jsx("span", { className: "text-stone-500 text-xs uppercase tracking-widest", children: "hint" }), _jsxs("span", { className: "text-stone-500 text-sm", children: ["walk to bench \u2192", " ", _jsx("kbd", { className: "px-1.5 py-0.5 rounded bg-stone-700 text-stone-300 text-xs font-sans", children: "E" })] })] }))] }));
+}

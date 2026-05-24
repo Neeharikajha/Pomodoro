@@ -3,9 +3,19 @@ export const CANVAS_HEIGHT = 640;
 const WALL_THICKNESS = 32;
 export const WALLS = [
     { x: 0, y: 0, width: CANVAS_WIDTH, height: WALL_THICKNESS },
-    { x: 0, y: CANVAS_HEIGHT - WALL_THICKNESS, width: CANVAS_WIDTH, height: WALL_THICKNESS },
+    {
+        x: 0,
+        y: CANVAS_HEIGHT - WALL_THICKNESS,
+        width: CANVAS_WIDTH,
+        height: WALL_THICKNESS,
+    },
     { x: 0, y: 0, width: WALL_THICKNESS, height: CANVAS_HEIGHT },
-    { x: CANVAS_WIDTH - WALL_THICKNESS, y: 0, width: WALL_THICKNESS, height: CANVAS_HEIGHT },
+    {
+        x: CANVAS_WIDTH - WALL_THICKNESS,
+        y: 0,
+        width: WALL_THICKNESS,
+        height: CANVAS_HEIGHT,
+    },
 ];
 export const BENCHES = [
     {
