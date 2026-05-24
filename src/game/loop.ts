@@ -1,10 +1,12 @@
 // src/game/loop.ts
-// The game loop. Owns the RAF cycle, delta time, and orchestrates
-// update → draw each frame. Wires in input and player for Step 2.
+// Updated for Step 3: wires in scene drawing + collision resolution.
+// Order every frame: update → resolve collisions → draw scene → draw player.
 
 import type { StateChangeCallback } from "./types";
 import { initInput } from "./input";
 import { createPlayer, updatePlayer, drawPlayer } from "./player";
+import { drawScene, getSolidRects, CANVAS_WIDTH, CANVAS_HEIGHT } from "./scene";
+import { resolveAllCollisions } from "./collision";
 
 export function startLoop(
   canvas: HTMLCanvasElement,
@@ -13,42 +15,37 @@ export function startLoop(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not get 2D context from canvas");
 
-  // --- Init subsystems ---
   const cleanupInput = initInput();
-  const player = createPlayer(canvas.width, canvas.height);
+  const player = createPlayer(CANVAS_WIDTH, CANVAS_HEIGHT);
+  const solids = getSolidRects(); // computed once — static world
 
-  let lastTime = 0;
+  let lastTime = performance.now();
   let animId = 0;
 
-  // --- Main loop ---
   const tick = (timestamp: number) => {
-    const dt = Math.min((timestamp - lastTime) / 1000, 0.05); // seconds; capped at 50ms to avoid huge jumps on tab resume
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
 
-    // Update
+    // 1. Move player based on input
     updatePlayer(player, dt);
 
-    // Draw
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 2. Push player out of any walls or benches
+    resolveAllCollisions(player, solids);
 
-    // Background
-    ctx.fillStyle = "#1c1917";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 3. Draw scene (floor → walls → benches)
+    drawScene(ctx);
 
-    // Player
+    // 4. Draw player on top
     drawPlayer(ctx, player);
 
-    // --- Notify React of state (Step 5 will make this meaningful) ---
+    // 5. Notify React (state changes will matter from Step 4 onward)
     onStateChange(player.state, "00:00");
 
     animId = requestAnimationFrame(tick);
   };
 
-  // Kick off — use performance.now() so first dt isn't huge
-  lastTime = performance.now();
   animId = requestAnimationFrame(tick);
 
-  // Cleanup: stop RAF + remove key listeners
   return () => {
     cancelAnimationFrame(animId);
     cleanupInput();
