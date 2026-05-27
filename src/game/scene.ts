@@ -1,6 +1,13 @@
 // scene.ts
 
-import { WALLS, BENCHES, CANVAS_WIDTH, CANVAS_HEIGHT } from "./world";
+import {
+  WALLS,
+  BENCHES,
+  FURNITURE,
+  LEFT_BOTTOM_FURNITURE,
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+} from "./world";
 import type { Bench, Rect } from "./types";
 
 // 🎨 Draw Floor
@@ -63,10 +70,31 @@ export function drawScene(ctx: CanvasRenderingContext2D): void {
 
   drawWalls(ctx);
   drawBenches(ctx);
+
+  // Optional: Draw furniture collision boxes for debugging (comment out in production)
+  // drawFurnitureDebug(ctx);
+}
+
+// 🔧 Debug: Draw furniture collision boxes
+function drawFurnitureDebug(ctx: CanvasRenderingContext2D): void {
+  ctx.strokeStyle = "rgba(255, 0, 255, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
+
+  for (const furniture of [...FURNITURE, ...LEFT_BOTTOM_FURNITURE]) {
+    ctx.strokeRect(furniture.x, furniture.y, furniture.width, furniture.height);
+  }
+
+  ctx.setLineDash([]);
 }
 
 export function getSolidRects(): Rect[] {
-  return [...WALLS, ...BENCHES.map((bench: Bench) => bench.rect)];
+  return [
+    ...WALLS,
+    ...FURNITURE,
+    ...LEFT_BOTTOM_FURNITURE,
+    ...BENCHES.map((bench: Bench) => bench.rect),
+  ];
 }
 
 export { CANVAS_WIDTH, CANVAS_HEIGHT };
