@@ -26,15 +26,13 @@ function drawFloor(ctx: CanvasRenderingContext2D): void {
     ctx.stroke();
   }
 
-  ctx.setLineDash([]);}
+  ctx.setLineDash([]);
+}
 
 // 🟥 Draw Walls (FIXED: high contrast)
 function drawWalls(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = "#a8a29e"; // light gray (VISIBLE)
-
-  for (const wall of WALLS) {
-    ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-  }
+  // Walls removed - no borders
+  return;
 }
 
 // 🟧 Draw Benches + Sit Zones (FIXED)
@@ -58,9 +56,11 @@ function drawBenches(ctx: CanvasRenderingContext2D): void {
 
 // 🎬 Main Scene Renderer
 export function drawScene(ctx: CanvasRenderingContext2D): void {
-  console.log("DRAWING SCENE"); // debug
+  console.log("🎨 DRAWING SCENE - Canvas should be transparent");
 
-  drawFloor(ctx);
+  // Clear canvas to make it transparent (don't draw floor)
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
   drawWalls(ctx);
   drawBenches(ctx);
 }

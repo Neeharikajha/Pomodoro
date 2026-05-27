@@ -26,6 +26,10 @@ export function startLoop(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not get 2D context from canvas");
 
+  console.log("🎮 Game loop starting");
+  console.log("📐 Canvas size:", canvas.width, "x", canvas.height);
+  console.log("🌐 NetClient:", netClient ? "connected" : "solo mode");
+
   const cleanupInput = initInput();
   const player = createPlayer(CANVAS_WIDTH, CANVAS_HEIGHT);
   const solids = getSolidRects();
@@ -34,10 +38,16 @@ export function startLoop(
   let lastTime = performance.now();
   let lastNetSend = 0;
   let animId = 0;
+  let frameCount = 0;
 
   const tick = (timestamp: number) => {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
+
+    frameCount++;
+    if (frameCount === 1) {
+      console.log("🎬 First frame rendered");
+    }
 
     // 1. Move
     updatePlayer(player, dt);
@@ -66,7 +76,11 @@ export function startLoop(
     // 6. Draw — remote players underneath local player
     drawScene(ctx);
     if (getRemotePlayers) {
-      drawRemotePlayers(ctx, getRemotePlayers());
+      const remotePlayers = getRemotePlayers();
+      if (frameCount === 1 && remotePlayers.size > 0) {
+        console.log("👥 Drawing", remotePlayers.size, "remote players");
+      }
+      drawRemotePlayers(ctx, remotePlayers);
     }
     drawPlayer(ctx, player);
 
@@ -81,6 +95,7 @@ export function startLoop(
   animId = requestAnimationFrame(tick);
 
   return () => {
+    console.log("🛑 Game loop stopped");
     cancelAnimationFrame(animId);
     cleanupInput();
     timer.stop();

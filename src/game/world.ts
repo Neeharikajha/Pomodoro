@@ -1,7 +1,7 @@
 import type { Bench, Rect } from "./types";
 
-export const CANVAS_WIDTH = 960;
-export const CANVAS_HEIGHT = 640;
+export const CANVAS_WIDTH = window.innerWidth;
+export const CANVAS_HEIGHT = window.innerHeight;
 
 const WALL_THICKNESS = 32;
 

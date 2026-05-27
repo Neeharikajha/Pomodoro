@@ -78,9 +78,9 @@ export default function App() {
   const totalPlayers = remotePlayers.size + 1;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 gap-5 p-6">
-      {/* Room bar */}
-      <div className="flex items-center gap-4 text-xs font-mono text-stone-500">
+    <div className="relative w-screen h-screen bg-neutral-950">
+      {/* Room bar - fixed at top */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-4 text-xs font-mono text-stone-500 bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg">
         <span>
           {localPlayer!.avatar} {localPlayer!.name}
         </span>
@@ -109,8 +109,8 @@ export default function App() {
         </button>
       </div>
 
-      {/* Who's here */}
-      <div className="flex items-center gap-2 flex-wrap justify-center">
+      {/* Who's here - fixed below room bar */}
+      <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-2 flex-wrap justify-center max-w-4xl">
         <span className="text-xs font-mono bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 rounded-full px-3 py-1">
           {localPlayer!.avatar} {localPlayer!.name} (you)
         </span>
@@ -124,16 +124,20 @@ export default function App() {
         ))}
       </div>
 
-      <HUD time={timerDisplay} status={playerState} />
+      {/* HUD - fixed at top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <HUD time={timerDisplay} status={playerState} />
+      </div>
 
-      {/* Pass net + remote players into the canvas */}
+      {/* Fullscreen canvas */}
       <GameCanvas
         onStateChange={handleStateChange}
         netClient={netClient ?? undefined}
         remotePlayers={remotePlayers}
       />
 
-      <p className="text-stone-600 text-xs font-mono">
+      {/* Controls hint - fixed at bottom */}
+      <p className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-stone-600 text-xs font-mono bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg">
         WASD / arrow keys to move &nbsp;·&nbsp; E to sit / stand
       </p>
     </div>
