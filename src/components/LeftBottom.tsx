@@ -117,7 +117,6 @@ export default function LeftBottom() {
                 alt="Common Side 2"
                 className="absolute"
                 style={{ left: "280px", bottom: "280px", transform: "scale(1.3)" }}
-                onLoad={() => console.log("✅ Common Side 2 loaded")}
             />
 
             {/* Chair 1 on left of common side */}
@@ -126,7 +125,6 @@ export default function LeftBottom() {
                 alt="Chair 1"
                 className="absolute"
                 style={{ left: "80px", bottom: "380px", transform: "scale(1.4)" }}
-                onLoad={() => console.log("✅ Chair 1 loaded")}
             />
 
             {/* Table between chairs */}
@@ -135,7 +133,6 @@ export default function LeftBottom() {
                 alt="Table"
                 className="absolute"
                 style={{ left: "130px", bottom: "375px", transform : "scale(1.3)" }}
-                onLoad={() => console.log("✅ Table loaded")}
             />
 
             {/* Chair 2 */}
@@ -144,7 +141,6 @@ export default function LeftBottom() {
                 alt="Chair 2"
                 className="absolute"
                 style={{ left: "200px", bottom: "380px", transform: "scaleX(-1) scale(1.4)" }}
-                onLoad={() => console.log("✅ Chair 2 loaded")}
             />
         </div>
     );

@@ -20,24 +20,43 @@ let eWasHeld = false;
 export function updateInteraction(player: Player, benches: Bench[]): boolean {
   const eIsHeld = isKeyHeld("e");
   const eJustPressed = eIsHeld && !eWasHeld;
-  eWasHeld = eIsHeld; // update for next frame
+  eWasHeld = eIsHeld;
 
   if (!eJustPressed) return false;
 
-  // ── Player is sitting → stand up ──────────────────────────────────────────
+  console.log(
+    "🎹 E pressed! Player state:",
+    player.state,
+    "at",
+    Math.round(player.x),
+    Math.round(player.y),
+  );
+  console.log("🛋️ Checking", benches.length, "benches");
+
   if (player.state === "sitting") {
     player.state = "walking";
+    console.log("🚶 Standing up");
     return true;
   }
 
-  // ── Player is walking → check if near a bench ─────────────────────────────
   const nearbyBench = findNearbyBench(player, benches);
   if (nearbyBench) {
     player.state = "sitting";
-    player.x = nearbyBench.sitX; // snap to defined sit position
+    player.x = nearbyBench.sitX;
     player.y = nearbyBench.sitY;
+    console.log("🪑 Sitting at", nearbyBench.sitX, nearbyBench.sitY);
     return true;
   }
+
+  console.log("❌ No bench nearby. Player rect:", {
+    x: player.x,
+    y: player.y,
+    w: player.width,
+    h: player.height,
+  });
+  benches.forEach((b, i) => {
+    console.log(`  bench[${i}] sitZone:`, b.sitZone);
+  });
 
   return false;
 }

@@ -44,34 +44,14 @@ export const FURNITURE: Rect[] = [
 ];
 
 // LeftBottom furniture collision boxes - center 20% only
+// Note: Red Sofas and Chairs are now in BENCHES (sittable)
 export const LEFT_BOTTOM_FURNITURE: Rect[] = [
-  // Left Red Sofa - center 20%
-  {
-    x: 100 + 60 * 0.4,
-    y: CANVAS_HEIGHT - 230 + 80 * 0.4,
-    width: 60 * 0.2,
-    height: 80 * 0.2,
-  },
   // Green Plant 1 - center 20%
   {
     x: 140 + 30 * 0.4,
     y: CANVAS_HEIGHT - 180 + 30 * 0.4,
     width: 30 * 0.2,
     height: 30 * 0.2,
-  },
-  // Bottom Red Sofa 1 - center 20%
-  {
-    x: 180 + 80 * 0.4,
-    y: CANVAS_HEIGHT - 130 + 60 * 0.4,
-    width: 80 * 0.2,
-    height: 60 * 0.2,
-  },
-  // Bottom Red Sofa 2 - center 20%
-  {
-    x: 260 + 80 * 0.4,
-    y: CANVAS_HEIGHT - 130 + 60 * 0.4,
-    width: 80 * 0.2,
-    height: 60 * 0.2,
   },
   // Green Plant 2 - center 20%
   {
@@ -122,13 +102,6 @@ export const LEFT_BOTTOM_FURNITURE: Rect[] = [
     width: 39 * 0.2,
     height: 121 * 0.2,
   },
-  // Chair 1 - center 20%
-  {
-    x: 260 + 30 * 0.4,
-    y: CANVAS_HEIGHT - 460 + 30 * 0.4,
-    width: 30 * 0.2,
-    height: 30 * 0.2,
-  },
   // Table (between chairs) - center 20%
   {
     x: 290 + 50 * 0.4,
@@ -136,32 +109,53 @@ export const LEFT_BOTTOM_FURNITURE: Rect[] = [
     width: 50 * 0.2,
     height: 50 * 0.2,
   },
-  // Chair 2 - center 20%
-  {
-    x: 340 + 30 * 0.4,
-    y: CANVAS_HEIGHT - 460 + 30 * 0.4,
-    width: 30 * 0.2,
-    height: 30 * 0.2,
-  },
 ];
 
 export const BENCHES: Bench[] = [
+  // Red Sofas - LeftBottom (sittable)
+  // RedSofa SVG: 32x64, scaled 1.5x = 48x96
+
+  // Left Red Sofa (vertical, at left: 80px, bottom: 70px)
   {
-    rect: { x: 120, y: 120, width: 196, height: 32 },
-    sitZone: { x: 120, y: 156, width: 196, height: 32 },
-    sitX: 148,
-    sitY: 156,
+    rect: { x: 80, y: CANVAS_HEIGHT - 70 - 96, width: 48, height: 96 },
+    sitZone: { x: 80, y: CANVAS_HEIGHT - 70 - 96, width: 48, height: 96 },
+    sitX: 104,
+    sitY: CANVAS_HEIGHT - 70 - 48,
   },
+
+  // Bottom Red Sofa 1 (horizontal, rotated -90deg, at left: 150px, bottom: 1px)
+  // When rotated -90deg, width/height swap: 96x48
   {
-    rect: { x: 600, y: 120, width: 196, height: 32 },
-    sitZone: { x: 600, y: 156, width: 196, height: 32 },
-    sitX: 628,
-    sitY: 156,
+    rect: { x: 150, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
+    sitZone: { x: 150, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
+    sitX: 198,
+    sitY: CANVAS_HEIGHT - 25,
   },
+
+  // Bottom Red Sofa 2 (horizontal, rotated -90deg, at left: 240px, bottom: 1px)
   {
-    rect: { x: 360, y: 430, width: 240, height: 32 },
-    sitZone: { x: 360, y: 466, width: 240, height: 32 },
-    sitX: 420,
-    sitY: 466,
+    rect: { x: 240, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
+    sitZone: { x: 240, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
+    sitX: 288,
+    sitY: CANVAS_HEIGHT - 25,
+  },
+
+  // Chairs - LeftBottom (sittable)
+  // Chair SVG: 37x37, scaled 1.4x = 52x52
+
+  // Chair 1 (at left: 80px, bottom: 380px)
+  {
+    rect: { x: 80, y: CANVAS_HEIGHT - 380 - 52, width: 52, height: 52 },
+    sitZone: { x: 80, y: CANVAS_HEIGHT - 380 - 52, width: 52, height: 52 },
+    sitX: 106,
+    sitY: CANVAS_HEIGHT - 380 - 26,
+  },
+
+  // Chair 2 (at left: 200px, bottom: 380px)
+  {
+    rect: { x: 200, y: CANVAS_HEIGHT - 380 - 52, width: 52, height: 52 },
+    sitZone: { x: 200, y: CANVAS_HEIGHT - 380 - 52, width: 52, height: 52 },
+    sitX: 226,
+    sitY: CANVAS_HEIGHT - 380 - 26,
   },
 ];
