@@ -7,6 +7,7 @@ import Oven from "../assets/components/layerOne/Oven.svg";
 import CommonSide from "../assets/components/layerOne/CommonSide.svg";
 import Drawer from "../assets/components/layerOne/Drawer.svg";
 import LeftBottom from "./LeftBottom";
+import RightAll from "./RightAll";
 
 export default function CafeLeft() {
     useEffect(() => {
@@ -101,6 +102,9 @@ export default function CafeLeft() {
 
             {/* Bottom Section */}
             <LeftBottom />
+
+            {/* Right All Section */}
+            <RightAll />
         </div>
     );
 }

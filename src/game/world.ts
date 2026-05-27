@@ -124,20 +124,19 @@ export const BENCHES: Bench[] = [
   },
 
   // Bottom Red Sofa 1 (horizontal, rotated -90deg, at left: 150px, bottom: 1px)
-  // When rotated -90deg, width/height swap: 96x48
   {
     rect: { x: 150, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
-    sitZone: { x: 150, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
+    sitZone: { x: 150, y: CANVAS_HEIGHT - 1 - 48 - 40, width: 96, height: 88 },
     sitX: 198,
-    sitY: CANVAS_HEIGHT - 25,
+    sitY: CANVAS_HEIGHT - 1 - 48 - 48, // sit above the sofa
   },
 
   // Bottom Red Sofa 2 (horizontal, rotated -90deg, at left: 240px, bottom: 1px)
   {
     rect: { x: 240, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
-    sitZone: { x: 240, y: CANVAS_HEIGHT - 1 - 48, width: 96, height: 48 },
+    sitZone: { x: 240, y: CANVAS_HEIGHT - 1 - 48 - 40, width: 96, height: 88 },
     sitX: 288,
-    sitY: CANVAS_HEIGHT - 25,
+    sitY: CANVAS_HEIGHT - 1 - 48 - 48, // sit above the sofa
   },
 
   // Chairs - LeftBottom (sittable)

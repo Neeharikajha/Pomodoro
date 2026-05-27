@@ -14,16 +14,15 @@ export default function HUD({ time, status }: Props) {
   const isSitting = status === "sitting";
 
   return (
-    <div className="flex items-center gap-6 px-6 py-3 rounded-xl bg-stone-900 border border-stone-700 shadow-lg font-mono select-none">
+    <div className="flex items-center gap-6 px-6 py-3 rounded-xl bg-transparent border border-stone-700/40 shadow-lg font-mono select-none backdrop-blur-sm">
       {/* Timer */}
       <div className="flex flex-col items-center gap-0.5">
-        <span className="text-stone-500 text-xs uppercase tracking-widest">
+        <span className="text-black text-xs uppercase tracking-widest">
           time seated
         </span>
         <span
-          className={`text-3xl tabular-nums font-bold tracking-tight transition-colors duration-300 ${
-            isSitting ? "text-yellow-400" : "text-stone-300"
-          }`}
+          className={`text-3xl tabular-nums font-bold tracking-tight transition-colors duration-300 ${isSitting ? "text-yellow-400" : "text-stone-300"
+            }`}
         >
           {time}
         </span>
@@ -34,15 +33,14 @@ export default function HUD({ time, status }: Props) {
 
       {/* Status badge */}
       <div className="flex flex-col items-center gap-0.5">
-        <span className="text-stone-500 text-xs uppercase tracking-widest">
+        <span className="text-black text-xs uppercase tracking-widest">
           status
         </span>
         <span
-          className={`px-3 py-1 rounded-full text-sm font-semibold transition-all duration-200 ${
-            isSitting
-              ? "bg-yellow-400/15 text-yellow-400 ring-1 ring-yellow-400/40"
-              : "bg-stone-800 text-stone-400 ring-1 ring-stone-600"
-          }`}
+          className={`px-3 py-1 rounded-full text-sm font-semibold transition-all duration-200 ${isSitting
+            ? "bg-yellow-400/15 text-yellow-400 ring-1 ring-yellow-400/40"
+            : "bg-stone-800 text-stone-400 ring-1 ring-stone-600"
+            }`}
         >
           {isSitting ? "🪑 sitting" : "🚶 walking"}
         </span>
@@ -51,10 +49,10 @@ export default function HUD({ time, status }: Props) {
       {/* Hint — only shown while walking */}
       {!isSitting && (
         <div className="flex flex-col items-center gap-0.5">
-          <span className="text-stone-500 text-xs uppercase tracking-widest">
+          <span className="text-black text-xs uppercase tracking-widest">
             hint
           </span>
-          <span className="text-stone-500 text-sm">
+          <span className="text-black text-sm">
             walk to bench →{" "}
             <kbd className="px-1.5 py-0.5 rounded bg-stone-700 text-stone-300 text-xs font-sans">
               E
