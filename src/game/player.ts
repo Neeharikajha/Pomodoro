@@ -1,6 +1,7 @@
 import type { Player } from "./types";
 import { isAnyKeyHeld } from "./input";
 import { getSprite } from "./sprites";
+import { STAGE_WIDTH, STAGE_HEIGHT } from "./world";
 
 export function createPlayer(
   canvasWidth: number,
@@ -34,13 +35,33 @@ export function updatePlayer(player: Player, dt: number): void {
     player.x += dist;
     player.facing = "right";
   }
+
+  player.x = Math.max(0, Math.min(player.x, STAGE_WIDTH - player.width));
+  player.y = Math.max(0, Math.min(player.y, STAGE_HEIGHT - player.height));
+}
+
+interface LocalPlayerRenderOptions {
+  avatar?: string;
+  name?: string;
+  seatTimer?: number;
+  seatStartTime?: number;
 }
 
 export function drawPlayer(
   ctx: CanvasRenderingContext2D,
   player: Player,
+  options?: LocalPlayerRenderOptions,
 ): void {
   const { x, y, width: w, height: h, character, facing, state } = player;
+  const avatar = options?.avatar;
+  const name = options?.name ?? "";
+  const seatTimer = options?.seatTimer ?? 0;
+  const seatStartTime = options?.seatStartTime;
+  const currentSeatSeconds = getCurrentSeatSeconds(
+    seatTimer,
+    seatStartTime,
+    state,
+  );
   const sprite = character ? getSprite(character) : null;
 
   ctx.save();
@@ -58,8 +79,15 @@ export function drawPlayer(
     ctx.globalAlpha = state === "sitting" ? 0.85 : 1;
     ctx.drawImage(sprite, x, y + bobY, w, h);
     ctx.globalAlpha = 1;
+  } else if (avatar) {
+    ctx.font = `${w * 0.55}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(avatar, x + w / 2, y + h / 2);
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
   } else {
-    // Fallback box (emoji avatar mode or sprite not loaded)
+    // Fallback box (sprite not loaded)
     ctx.fillStyle = state === "sitting" ? "#facc15" : "#60a5fa";
     ctx.fillRect(x, y, w, h);
     ctx.fillStyle = state === "sitting" ? "#78350f" : "#1d4ed8";
@@ -69,12 +97,73 @@ export function drawPlayer(
 
   ctx.restore();
 
+  if (state === "sitting" || seatTimer > 0) {
+    drawTimeLabel(
+      ctx,
+      x + w / 2,
+      y - 6,
+      name,
+      formatTime(currentSeatSeconds),
+      state === "sitting",
+    );
+  }
+
   // "[E] stand" hint when sitting
   if (state === "sitting") {
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.font = "11px monospace";
     ctx.textAlign = "center";
-    ctx.fillText("[E] stand", x + w / 2, y - 6);
+    ctx.fillText("[E] stand", x + w / 2, y - 20);
     ctx.textAlign = "left";
   }
+}
+
+function getCurrentSeatSeconds(
+  seatTimer: number,
+  seatStartTime: number | undefined,
+  state: "walking" | "sitting",
+): number {
+  if (state === "sitting" && seatStartTime && seatStartTime > 0) {
+    return seatTimer + Math.floor((Date.now() - seatStartTime) / 1000);
+  }
+  return seatTimer;
+}
+
+function drawTimeLabel(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  y: number,
+  name: string,
+  timeLabel: string,
+  isSitting: boolean,
+): void {
+  ctx.font = "11px monospace";
+  ctx.textAlign = "center";
+
+  const label = isSitting ? `⏱ ${timeLabel}` : timeLabel;
+  const metrics = ctx.measureText(label);
+  const pw = metrics.width + 10;
+  const ph = 14;
+
+  ctx.fillStyle = isSitting ? "rgba(250,204,21,0.25)" : "rgba(0,0,0,0.45)";
+  ctx.beginPath();
+  ctx.roundRect(cx - pw / 2, y - ph + 2, pw, ph, 4);
+  ctx.fill();
+
+  ctx.fillStyle = isSitting ? "#facc15" : "rgba(255,255,255,0.7)";
+  ctx.fillText(label, cx, y);
+
+  if (name) {
+    ctx.font = "10px monospace";
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillText(name, cx, y + 13);
+  }
+
+  ctx.textAlign = "left";
+}
+
+function formatTime(totalSecs: number): string {
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }

@@ -25,6 +25,13 @@ function getZoom(viewportWidth: number, viewportHeight: number): number {
   return Math.max(0.8, Math.min(1, ratio));
 }
 
+type LocalPlayerRenderMeta = {
+  avatar?: string;
+  name?: string;
+  seatTimer?: number;
+  seatStartTime?: number;
+};
+
 export function startLoop(
   canvas: HTMLCanvasElement,
   onStateChange: StateChangeCallback,
@@ -32,6 +39,7 @@ export function startLoop(
   getRemotePlayers?: () => Map<string, RemotePlayer>,
   character = "Boy1",
   onViewChange?: (view: CameraView) => void,
+  getLocalRenderMeta?: () => LocalPlayerRenderMeta,
 ): () => void {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not get 2D context from canvas");
@@ -98,20 +106,40 @@ export function startLoop(
     // 7. Draw
     const visibleWorldWidth = camera.viewportWidth / camera.zoom;
     const visibleWorldHeight = camera.viewportHeight / camera.zoom;
-    camera.x = Math.max(
-      0,
-      Math.min(
-        player.x + player.width / 2 - visibleWorldWidth / 2,
-        WORLD_WIDTH - visibleWorldWidth,
-      ),
-    );
-    camera.y = Math.max(
-      0,
-      Math.min(
-        player.y + player.height / 2 - visibleWorldHeight / 2,
-        WORLD_HEIGHT - visibleWorldHeight,
-      ),
-    );
+
+    if (visibleWorldWidth >= WORLD_WIDTH) {
+      camera.x = 0;
+    } else if (player.x < camera.x) {
+      camera.x = Math.max(
+        0,
+        Math.min(player.x, WORLD_WIDTH - visibleWorldWidth),
+      );
+    } else if (player.x + player.width > camera.x + visibleWorldWidth) {
+      camera.x = Math.max(
+        0,
+        Math.min(
+          player.x + player.width - visibleWorldWidth,
+          WORLD_WIDTH - visibleWorldWidth,
+        ),
+      );
+    }
+
+    if (visibleWorldHeight >= WORLD_HEIGHT) {
+      camera.y = 0;
+    } else if (player.y < camera.y) {
+      camera.y = Math.max(
+        0,
+        Math.min(player.y, WORLD_HEIGHT - visibleWorldHeight),
+      );
+    } else if (player.y + player.height > camera.y + visibleWorldHeight) {
+      camera.y = Math.max(
+        0,
+        Math.min(
+          player.y + player.height - visibleWorldHeight,
+          WORLD_HEIGHT - visibleWorldHeight,
+        ),
+      );
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
@@ -120,13 +148,14 @@ export function startLoop(
     drawScene(ctx);
     drawNPCs(ctx, npcs);
     if (getRemotePlayers) drawRemotePlayers(ctx, getRemotePlayers());
-    drawPlayer(ctx, player);
+    const localMeta = getLocalRenderMeta?.();
+    drawPlayer(ctx, player, localMeta);
     ctx.restore();
     onViewChange?.(camera);
 
     // 8. Notify React
     if (player.state === "sitting" || stateChanged) {
-      onStateChange(player.state, timer.getDisplay());
+      onStateChange(player.state, timer.getDisplay(), timer.getSeconds());
     }
 
     animId = requestAnimationFrame(tick);

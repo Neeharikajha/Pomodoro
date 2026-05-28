@@ -41,10 +41,13 @@ function RemoteVideoTile({
   }, [stream]);
 
   const hasLiveVideoTrack =
-    !!stream && stream.getVideoTracks().some((track) => track.readyState === "live");
+    !!stream &&
+    stream.getVideoTracks().some((track) => track.readyState === "live");
 
-  const left = (player.x - view.x) * view.zoom + 36 * view.zoom - videoSize / 2;
-  const top = (player.y - view.y) * view.zoom - videoSize - 24;
+  const spriteWidth = 72;
+  const xCenter = player.x + spriteWidth / 2;
+  const left = (xCenter - view.x) * view.zoom - videoSize / 2;
+  const top = (player.y - view.y) * view.zoom - videoSize - 12;
 
   if (!player.videoEnabled || !hasLiveVideoTrack) return null;
 
@@ -56,7 +59,10 @@ function RemoteVideoTile({
         width: videoSize,
       }}
     >
-      <div className="rounded-lg overflow-hidden border border-blue-400 shadow-lg" style={{ backgroundColor: 'rgba(137, 207, 240, 0.8)' }}>
+      <div
+        className="rounded-lg overflow-hidden border border-blue-400 shadow-lg"
+        style={{ backgroundColor: "rgba(137, 207, 240, 0.8)" }}
+      >
         <video
           ref={ref}
           autoPlay
@@ -105,8 +111,17 @@ function LocalPreview({ stream }: { stream: MediaStream | null }) {
   if (!stream) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-44 rounded-lg overflow-hidden border border-blue-400 shadow-xl" style={{ backgroundColor: 'rgba(137, 207, 240, 0.8)' }}>
-      <video ref={ref} autoPlay playsInline muted className="w-full h-28 object-cover" />
+    <div
+      className="fixed bottom-4 right-4 z-50 w-44 rounded-lg overflow-hidden border border-blue-400 shadow-xl"
+      style={{ backgroundColor: "rgba(137, 207, 240, 0.8)" }}
+    >
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        muted
+        className="w-full h-28 object-cover"
+      />
       <div className="px-2 py-1 text-[10px] text-stone-700 font-mono">you</div>
     </div>
   );
@@ -124,26 +139,31 @@ export default function MediaOverlay({
   onToggleVideo,
   view,
 }: Props) {
-  const remoteList = useMemo(() => Array.from(remotePlayers.values()), [remotePlayers]);
+  const remoteList = useMemo(
+    () => Array.from(remotePlayers.values()),
+    [remotePlayers],
+  );
 
   return (
     <>
       <div className="fixed top-4 left-4 z-50 bg-transparent backdrop-blur-sm border border-stone-700/40 shadow-lg rounded-xl px-6 py-3 flex items-center gap-6 font-mono text-xs select-none">
         <button
           onClick={onToggleMic}
-          className={`px-3 py-1.5 rounded-md border transition-colors ${micMuted
-            ? "border-red-600/60 text-red-700 bg-red-100/50"
-            : "border-green-700 text-green-700 bg-green-100/50"
-            }`}
+          className={`px-3 py-1.5 rounded-md border transition-colors ${
+            micMuted
+              ? "border-red-600/60 text-red-700 bg-red-100/50"
+              : "border-green-700 text-green-700 bg-green-100/50"
+          }`}
         >
           {micMuted ? "mic muted" : "mic on"}
         </button>
         <button
           onClick={onToggleVideo}
-          className={`px-3 py-1.5 rounded-md border transition-colors ${videoEnabled
-            ? "border-green-700 text-green-700 bg-green-100/50"
-            : "border-stone-600 text-stone-700 bg-stone-200/70"
-            }`}
+          className={`px-3 py-1.5 rounded-md border transition-colors ${
+            videoEnabled
+              ? "border-green-700 text-green-700 bg-green-100/50"
+              : "border-stone-600 text-stone-700 bg-stone-200/70"
+          }`}
         >
           {videoEnabled ? "camera on" : "camera off"}
         </button>
@@ -172,7 +192,10 @@ export default function MediaOverlay({
       </div>
 
       {remoteList.map((player) => (
-        <RemoteAudioSink key={`audio-${player.id}`} stream={remoteStreams.get(player.id)} />
+        <RemoteAudioSink
+          key={`audio-${player.id}`}
+          stream={remoteStreams.get(player.id)}
+        />
       ))}
 
       <LocalPreview stream={localStream} />

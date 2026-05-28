@@ -16,12 +16,10 @@ function drawRemotePlayer(
   ctx: CanvasRenderingContext2D,
   player: RemotePlayer,
 ): void {
-  const { x, y, state, avatar, character, name, seatTimer } = player;
+  const { x, y, state, avatar, character, name } = player;
   const w = 72;
   const h = 72;
-
-  // Use the seatTimer directly from the server - no local calculation needed
-  const timeLabel = formatTime(seatTimer);
+  const timeLabel = formatTime(getRemoteSeatSeconds(player));
   const sprite = character ? getSprite(character) : null;
   const spriteReady = sprite && sprite.complete && sprite.naturalWidth > 0;
 
@@ -83,6 +81,19 @@ function drawTimeLabel(
   ctx.fillText(name, cx, y + 13);
 
   ctx.textAlign = "left";
+}
+
+function getRemoteSeatSeconds(player: RemotePlayer): number {
+  if (
+    player.state === "sitting" &&
+    player.seatStartTime &&
+    player.seatStartTime > 0
+  ) {
+    return (
+      player.seatTimer + Math.floor((Date.now() - player.seatStartTime) / 1000)
+    );
+  }
+  return player.seatTimer;
 }
 
 function formatTime(totalSecs: number): string {

@@ -32,7 +32,8 @@ function readSession(): PersistedSession | null {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedSession;
-    if (!parsed?.localPlayer?.id || !parsed?.roomId || !parsed?.mode) return null;
+    if (!parsed?.localPlayer?.id || !parsed?.roomId || !parsed?.mode)
+      return null;
     return parsed;
   } catch {
     return null;
@@ -56,6 +57,7 @@ export default function App() {
   );
   const [timerDisplay, setTimerDisplay] = useState<string>("00:00");
   const [playerState, setPlayerState] = useState<PlayerState>("walking");
+  const [localSeatSeconds, setLocalSeatSeconds] = useState<number>(0);
   const [lobby, setLobby] = useState<LobbyState>(() => {
     if (restoredSession) {
       return {
@@ -105,14 +107,19 @@ export default function App() {
   }, []);
 
   const handleStateChange = useCallback(
-    (state: PlayerState, display: string) => {
+    (state: PlayerState, display: string, seconds: number) => {
       setPlayerState(state);
       setTimerDisplay(display);
+      setLocalSeatSeconds(seconds);
     },
     [],
   );
 
-  const media = useRoomMedia(lobby.localPlayer?.id ?? "", netClient, remotePlayers);
+  const media = useRoomMedia(
+    lobby.localPlayer?.id ?? "",
+    netClient,
+    remotePlayers,
+  );
 
   useEffect(() => {
     mediaSignalHandlerRef.current = media.handleSignal;
@@ -248,7 +255,7 @@ export default function App() {
   return (
     <div
       className="relative w-screen h-screen flex items-center justify-center overflow-hidden"
-      style={{ backgroundColor: '#89CFF0' }}
+      style={{ backgroundColor: "#89CFF0" }}
     >
       {/* Room bar - fixed at top */}
       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-4 text-xs font-mono text-stone-500 bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg">
@@ -324,6 +331,9 @@ export default function App() {
           netClient={netClient ?? undefined}
           remotePlayers={remotePlayers}
           character={localPlayer!.character}
+          localAvatar={localPlayer!.avatar}
+          localName={localPlayer!.name}
+          localSeatTimer={localSeatSeconds}
           onViewChange={setView}
         />
       </div>

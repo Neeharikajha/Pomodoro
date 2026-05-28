@@ -118,6 +118,7 @@ io.on("connection", (socket) => {
       y: player.y,
       state: player.state,
       seatTimer: player.seatTimer,
+      seatStartTime: player.seatStartTime,
       micMuted: player.micMuted,
       videoEnabled: player.videoEnabled,
     });
@@ -172,6 +173,31 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+const SEAT_SYNC_INTERVAL_MS = 1000;
+setInterval(() => {
+  rooms.forEach((room) => {
+    if (!room.players.size) return;
+    const updates = Array.from(room.players.values()).map((player) => {
+      const seatTimer =
+        player.state === "sitting" && player.seatStartTime > 0
+          ? player.seatTimer +
+            Math.floor((Date.now() - player.seatStartTime) / 1000)
+          : player.seatTimer;
+      return {
+        id: player.id,
+        state: player.state,
+        seatTimer,
+        seatStartTime: player.seatStartTime,
+      };
+    });
+
+    io.to(room.id).emit("message", {
+      type: "seat_sync",
+      players: updates,
+    });
+  });
+}, SEAT_SYNC_INTERVAL_MS);
 
 httpServer.listen(PORT, () => {
   console.log(`[SERVER] Listening on port ${PORT}`);

@@ -18,7 +18,11 @@ const CHARACTERS = [
 type PickerMode = "avatar" | "character";
 
 interface Props {
-  onEnter: (player: LocalPlayer, roomId: RoomId, mode: "create" | "join" | "random") => void;
+  onEnter: (
+    player: LocalPlayer,
+    roomId: RoomId,
+    mode: "create" | "join" | "random",
+  ) => void;
 }
 
 export default function RoomLobby({ onEnter }: Props) {
@@ -38,59 +42,85 @@ export default function RoomLobby({ onEnter }: Props) {
   };
 
   function handleCreate() {
-    if (!name.trim()) { setError("pick a name first"); return; }
-    onEnter(localPlayer, Math.random().toString(36).slice(2, 8).toUpperCase(), "create");
+    if (!name.trim()) {
+      setError("pick a name first");
+      return;
+    }
+    onEnter(
+      localPlayer,
+      Math.random().toString(36).slice(2, 8).toUpperCase(),
+      "create",
+    );
   }
 
   function handleJoin() {
-    if (!name.trim()) { setError("pick a name first"); return; }
+    if (!name.trim()) {
+      setError("pick a name first");
+      return;
+    }
     const code = joinCode.trim().toUpperCase();
-    if (code.length < 4) { setError("enter a valid room code"); return; }
+    if (code.length < 4) {
+      setError("enter a valid room code");
+      return;
+    }
     onEnter(localPlayer, code, "join");
   }
 
   function handleRandom() {
-    if (!name.trim()) { setError("pick a name first"); return; }
+    if (!name.trim()) {
+      setError("pick a name first");
+      return;
+    }
     onEnter(localPlayer, "__random__", "random");
   }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 p-6 gap-6 font-mono">
-      <h1 className="text-stone-500 text-sm uppercase tracking-widest">☕ café sim</h1>
+      <h1 className="text-stone-500 text-sm uppercase tracking-widest">
+        ☕ café sim
+      </h1>
 
       <div className="w-full max-w-sm flex flex-col gap-4 bg-stone-900 border border-stone-700 rounded-xl p-5">
-
         {/* Name */}
         <div>
-          <label className="text-stone-500 text-xs uppercase tracking-widest block mb-2">your name</label>
+          <label className="text-stone-500 text-xs uppercase tracking-widest block mb-2">
+            your name
+          </label>
           <input
             className="w-full bg-stone-800 border border-stone-600 rounded-lg px-3 py-2 text-stone-100 text-sm placeholder-stone-600 focus:outline-none focus:border-yellow-400"
             placeholder="e.g. Mochi"
             maxLength={16}
             value={name}
-            onChange={(e) => { setName(e.target.value); setError(""); }}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
           />
         </div>
 
         {/* Toggle tabs */}
         <div>
-          <label className="text-stone-500 text-xs uppercase tracking-widest block mb-2">pick your look</label>
+          <label className="text-stone-500 text-xs uppercase tracking-widest block mb-2">
+            pick your look
+          </label>
           <div className="flex rounded-lg overflow-hidden border border-stone-700 mb-3">
             <button
               onClick={() => setPickerMode("character")}
-              className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${pickerMode === "character"
+              className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${
+                pickerMode === "character"
                   ? "bg-yellow-400 text-stone-900"
                   : "bg-stone-800 text-stone-400 hover:text-stone-200"
-                }`}
+              }`}
             >
               character
             </button>
             <button
               onClick={() => setPickerMode("avatar")}
-              className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${pickerMode === "avatar"
+              className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${
+                pickerMode === "avatar"
                   ? "bg-yellow-400 text-stone-900"
                   : "bg-stone-800 text-stone-400 hover:text-stone-200"
-                }`}
+              }`}
             >
               emoji avatar
             </button>
@@ -102,12 +132,17 @@ export default function RoomLobby({ onEnter }: Props) {
                 <button
                   key={c.key}
                   onClick={() => setCharacter(c.key)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${character === c.key
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
+                    character === c.key
                       ? "border-yellow-400 bg-yellow-400/10"
                       : "border-stone-700 bg-stone-800 hover:border-stone-500"
-                    }`}
+                  }`}
                 >
-                  <img src={c.url} alt={c.label} className="w-14 h-14 object-contain" />
+                  <img
+                    src={c.url}
+                    alt={c.label}
+                    className="w-14 h-14 object-contain"
+                  />
                   <span className="text-stone-400 text-xs">{c.label}</span>
                 </button>
               ))}
@@ -120,10 +155,11 @@ export default function RoomLobby({ onEnter }: Props) {
                 <button
                   key={a}
                   onClick={() => setAvatar(a)}
-                  className={`text-2xl p-1.5 rounded-lg border transition-all ${avatar === a
+                  className={`text-xl p-2 rounded-lg border transition-all ${
+                    avatar === a
                       ? "border-yellow-400 bg-yellow-400/10"
                       : "border-stone-700 bg-stone-800 hover:border-stone-500"
-                    }`}
+                  }`}
                 >
                   {a}
                 </button>

@@ -2,8 +2,8 @@ import type { Bench, Rect } from "./types";
 
 export const STAGE_WIDTH = 1366;
 export const STAGE_HEIGHT = 768;
-export const WORLD_WIDTH = 2800;
-export const WORLD_HEIGHT = 1800;
+export const WORLD_WIDTH = STAGE_WIDTH;
+export const WORLD_HEIGHT = STAGE_HEIGHT;
 
 const WALL_THICKNESS = 32;
 

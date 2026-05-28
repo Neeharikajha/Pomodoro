@@ -10,6 +10,7 @@ export interface RemotePlayer {
   y: number;
   state: "walking" | "sitting";
   seatTimer: number;
+  seatStartTime?: number;
   micMuted: boolean;
   videoEnabled: boolean;
 }
@@ -101,6 +102,7 @@ export function createNetClient(
               ...p,
               character: p.character ?? "",
               seatTimer: p.seatTimer ?? 0,
+              seatStartTime: p.seatStartTime ?? 0,
               micMuted: p.micMuted ?? true,
               videoEnabled: p.videoEnabled ?? false,
             });
@@ -115,6 +117,7 @@ export function createNetClient(
             ...msg.player,
             character: msg.player.character ?? "",
             seatTimer: msg.player.seatTimer ?? 0,
+            seatStartTime: msg.player.seatStartTime ?? 0,
             micMuted: msg.player.micMuted ?? true,
             videoEnabled: msg.player.videoEnabled ?? false,
           });
@@ -128,7 +131,8 @@ export function createNetClient(
           p.x = msg.x;
           p.y = msg.y;
           p.state = msg.state;
-          p.seatTimer = msg.seatTimer ?? 0;
+          p.seatTimer = msg.seatTimer ?? p.seatTimer;
+          p.seatStartTime = msg.seatStartTime ?? p.seatStartTime;
           p.micMuted = msg.micMuted ?? p.micMuted;
           p.videoEnabled = msg.videoEnabled ?? p.videoEnabled;
           onUpdate(new Map(remotePlayers));
@@ -142,6 +146,17 @@ export function createNetClient(
           p.videoEnabled = msg.videoEnabled ?? p.videoEnabled;
           onUpdate(new Map(remotePlayers));
         }
+        break;
+      }
+      case "seat_sync": {
+        for (const update of msg.players) {
+          const p = remotePlayers.get(update.id);
+          if (!p) continue;
+          p.state = update.state ?? p.state;
+          p.seatTimer = update.seatTimer ?? p.seatTimer;
+          p.seatStartTime = update.seatStartTime ?? p.seatStartTime;
+        }
+        onUpdate(new Map(remotePlayers));
         break;
       }
       case "player_left": {
