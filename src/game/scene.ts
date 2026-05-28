@@ -5,6 +5,7 @@ import {
   BENCHES,
   FURNITURE,
   LEFT_BOTTOM_FURNITURE,
+  RIGHT_ALL_FURNITURE,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
 } from "./world";
@@ -35,6 +36,7 @@ export function getSolidRects(): Rect[] {
     ...WALLS,
     ...FURNITURE,
     ...LEFT_BOTTOM_FURNITURE,
+    ...RIGHT_ALL_FURNITURE,
     // BENCHES excluded — player must walk into sitZone to trigger sit
   ];
 }

@@ -12,6 +12,7 @@ export interface Timer {
   stop: () => void;
   getDisplay: () => string;
   getTotalMs: () => number;
+  getSeconds: () => number;
 }
 
 export function createTimer(): Timer {
@@ -45,7 +46,11 @@ export function createTimer(): Timer {
     return `${pad(minutes)}:${pad(seconds)}`;
   }
 
-  return { start, stop, getDisplay, getTotalMs };
+  function getSeconds(): number {
+    return Math.floor(getTotalMs() / 1000);
+  }
+
+  return { start, stop, getDisplay, getTotalMs, getSeconds };
 }
 
 function pad(n: number): string {

@@ -1,10 +1,7 @@
-// src/game/remotePlayer.ts
-// Draws remote players on the canvas.
-// Green body so they're visually distinct from the local player (blue).
-// Avatar emoji + name label float above them.
-// Mirrors the sitting/walking visual from player.ts.
-
 import type { RemotePlayer } from "../net/client";
+import { getSprite, preloadSprites } from "./sprites";
+
+preloadSprites();
 
 export function drawRemotePlayers(
   ctx: CanvasRenderingContext2D,
@@ -19,91 +16,76 @@ function drawRemotePlayer(
   ctx: CanvasRenderingContext2D,
   player: RemotePlayer,
 ): void {
-  const { x, y, state, avatar, name } = player;
-  const w = 32;
-  const h = 32;
+  const { x, y, state, avatar, character, name, seatTimer, seatStart } = player;
+  const w = 72;
+  const h = 72;
 
-  if (state === "sitting") {
-    drawRemoteSitting(ctx, x, y, w, h, avatar, name);
-  } else {
-    drawRemoteWalking(ctx, x, y, w, h, avatar, name);
+  // Live seated seconds: base from last broadcast + elapsed since sitting started locally
+  const liveSecs =
+    state === "sitting" && seatStart > 0
+      ? seatTimer + Math.floor((performance.now() - seatStart) / 1000)
+      : seatTimer;
+
+  const timeLabel = formatTime(liveSecs);
+  const sprite = character ? getSprite(character) : null;
+  const spriteReady = sprite && sprite.complete && sprite.naturalWidth > 0;
+
+  ctx.save();
+
+  if (spriteReady) {
+    const bobY = state === "walking" ? Math.sin(Date.now() / 150) * 1.5 : 0;
+    ctx.globalAlpha = state === "sitting" ? 0.85 : 1;
+    ctx.drawImage(sprite!, x, y + bobY, w, h);
+    ctx.globalAlpha = 1;
+  } else if (avatar) {
+    // Emoji avatar — no box, just the emoji
+    ctx.font = `${w * 0.55}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(avatar, x + w / 2, y + h / 2);
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
   }
+  // If neither ready: invisible until loaded (no yellow box)
+
+  ctx.restore();
+
+  drawTimeLabel(ctx, x + w / 2, y - 6, name, timeLabel, state === "sitting");
 }
 
-function drawRemoteWalking(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  avatar: string,
-  name: string,
-): void {
-  // Body — green to distinguish from local player
-  ctx.fillStyle = "#4ade80";
-  ctx.fillRect(x, y, w, h);
-
-  // Direction nub
-  ctx.fillStyle = "#14532d";
-  ctx.fillRect(x + 10, y + 4, 12, 7);
-
-  // Outline
-  ctx.strokeStyle = "#86efac";
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x + 0.75, y + 0.75, w - 1.5, h - 1.5);
-
-  // Label above
-  drawLabel(ctx, x + w / 2, y - 6, avatar, name);
-}
-
-function drawRemoteSitting(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  avatar: string,
-  name: string,
-): void {
-  const sittingH = h * 0.65;
-  const sittingY = y + (h - sittingH);
-
-  ctx.fillStyle = "#4ade80";
-  ctx.fillRect(x, sittingY, w, sittingH);
-
-  // Eyes
-  ctx.fillStyle = "#14532d";
-  ctx.fillRect(x + 8, sittingY + 6, 4, 4);
-  ctx.fillRect(x + 20, sittingY + 6, 4, 4);
-
-  ctx.strokeStyle = "#86efac";
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x + 0.75, sittingY + 0.75, w - 1.5, sittingH - 1.5);
-
-  drawLabel(ctx, x + w / 2, sittingY - 6, avatar, name);
-}
-
-function drawLabel(
+function drawTimeLabel(
   ctx: CanvasRenderingContext2D,
   cx: number,
   y: number,
-  avatar: string,
   name: string,
+  timeLabel: string,
+  isSitting: boolean,
 ): void {
-  const label = `${avatar} ${name}`;
   ctx.font = "11px monospace";
   ctx.textAlign = "center";
 
-  // Subtle dark pill behind the text so it's readable over any background
+  const label = isSitting ? `⏱ ${timeLabel}` : timeLabel;
   const metrics = ctx.measureText(label);
   const pw = metrics.width + 10;
   const ph = 14;
-  ctx.fillStyle = "rgba(0,0,0,0.45)";
+
+  ctx.fillStyle = isSitting ? "rgba(250,204,21,0.25)" : "rgba(0,0,0,0.45)";
   ctx.beginPath();
   ctx.roundRect(cx - pw / 2, y - ph + 2, pw, ph, 4);
   ctx.fill();
 
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillStyle = isSitting ? "#facc15" : "rgba(255,255,255,0.7)";
   ctx.fillText(label, cx, y);
+
+  ctx.font = "10px monospace";
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillText(name, cx, y + 13);
+
   ctx.textAlign = "left";
+}
+
+function formatTime(totalSecs: number): string {
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }

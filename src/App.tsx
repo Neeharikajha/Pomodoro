@@ -134,6 +134,7 @@ export default function App() {
         onStateChange={handleStateChange}
         netClient={netClient ?? undefined}
         remotePlayers={remotePlayers}
+        character={localPlayer!.character}
       />
 
       {/* Controls hint - fixed at bottom */}

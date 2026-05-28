@@ -11,6 +11,8 @@ export interface Player {
   height: number;
   speed: number;
   state: PlayerState;
+  character: string; // sprite key e.g. "Boy1"
+  facing: "left" | "right"; // for sprite flipping
 }
 
 export interface Rect {

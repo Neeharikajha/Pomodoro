@@ -1,99 +1,80 @@
-// src/game/player.ts
-// Updated for Step 4: drawPlayer now shows a clear sitting vs walking visual.
-
 import type { Player } from "./types";
 import { isAnyKeyHeld } from "./input";
+import { getSprite } from "./sprites";
 
 export function createPlayer(
   canvasWidth: number,
   canvasHeight: number,
+  character = "Boy1",
 ): Player {
   return {
-    x: canvasWidth / 2 - 16,
-    y: canvasHeight / 2 - 16,
-    width: 32,
-    height: 32,
+    x: canvasWidth / 2 - 36,
+    y: canvasHeight / 2 - 36,
+    width: 80, // 48 * 1.5
+    height: 88,
     speed: 180,
     state: "walking",
+    character,
+    facing: "right",
   };
 }
 
 export function updatePlayer(player: Player, dt: number): void {
-  // Movement is fully locked while sitting — interaction.ts handles state changes
   if (player.state === "sitting") return;
 
   const dist = player.speed * dt;
 
   if (isAnyKeyHeld(["arrowup", "w"])) player.y -= dist;
   if (isAnyKeyHeld(["arrowdown", "s"])) player.y += dist;
-  if (isAnyKeyHeld(["arrowleft", "a"])) player.x -= dist;
-  if (isAnyKeyHeld(["arrowright", "d"])) player.x += dist;
+  if (isAnyKeyHeld(["arrowleft", "a"])) {
+    player.x -= dist;
+    player.facing = "left";
+  }
+  if (isAnyKeyHeld(["arrowright", "d"])) {
+    player.x += dist;
+    player.facing = "right";
+  }
 }
 
 export function drawPlayer(
   ctx: CanvasRenderingContext2D,
   player: Player,
 ): void {
-  const { x, y, width, height, state } = player;
+  const { x, y, width: w, height: h, character, facing, state } = player;
+  const sprite = character ? getSprite(character) : null;
 
-  if (state === "sitting") {
-    drawSitting(ctx, x, y, width, height);
-  } else {
-    drawWalking(ctx, x, y, width, height);
+  ctx.save();
+
+  // Flip horizontally when facing left
+  if (facing === "left") {
+    ctx.translate(x + w / 2, y + h / 2);
+    ctx.scale(-1, 1);
+    ctx.translate(-(x + w / 2), -(y + h / 2));
   }
-}
 
-// Walking: upright blue square with a direction nub at the top
-function drawWalking(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
-  // Body
-  ctx.fillStyle = "#60a5fa";
-  ctx.fillRect(x, y, w, h);
+  if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+    // Slight bob when walking
+    const bobY = state === "walking" ? Math.sin(Date.now() / 150) * 1.5 : 0;
+    ctx.globalAlpha = state === "sitting" ? 0.85 : 1;
+    ctx.drawImage(sprite, x, y + bobY, w, h);
+    ctx.globalAlpha = 1;
+  } else {
+    // Fallback box (emoji avatar mode or sprite not loaded)
+    ctx.fillStyle = state === "sitting" ? "#facc15" : "#60a5fa";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = state === "sitting" ? "#78350f" : "#1d4ed8";
+    ctx.fillRect(x + w * 0.3, y + h * 0.25, w * 0.15, w * 0.15);
+    ctx.fillRect(x + w * 0.55, y + h * 0.25, w * 0.15, w * 0.15);
+  }
 
-  // Direction nub (top center)
-  ctx.fillStyle = "#1d4ed8";
-  ctx.fillRect(x + 10, y + 4, 12, 7);
+  ctx.restore();
 
-  // Subtle outline
-  ctx.strokeStyle = "#93c5fd";
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x + 0.75, y + 0.75, w - 1.5, h - 1.5);
-}
-
-// Sitting: shorter yellow square (squished down to look "seated")
-function drawSitting(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
-  const sittingH = h * 0.65; // visually compress the player when seated
-  const sittingY = y + (h - sittingH);
-
-  // Body
-  ctx.fillStyle = "#facc15";
-  ctx.fillRect(x, sittingY, w, sittingH);
-
-  // "Relaxed" face — two dots
-  ctx.fillStyle = "#78350f";
-  ctx.fillRect(x + 8, sittingY + 6, 4, 4);
-  ctx.fillRect(x + 20, sittingY + 6, 4, 4);
-
-  // Outline
-  ctx.strokeStyle = "#fde68a";
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x + 0.75, sittingY + 0.75, w - 1.5, sittingH - 1.5);
-
-  // "E to stand" hint above the player
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  ctx.font = "11px monospace";
-  ctx.textAlign = "center";
-  ctx.fillText("[E] stand", x + w / 2, sittingY - 8);
-  ctx.textAlign = "left"; // reset to default
+  // "[E] stand" hint when sitting
+  if (state === "sitting") {
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.font = "11px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("[E] stand", x + w / 2, y - 6);
+    ctx.textAlign = "left";
+  }
 }

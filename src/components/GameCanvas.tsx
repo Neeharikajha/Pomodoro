@@ -11,12 +11,14 @@ interface Props {
   onStateChange: StateChangeCallback;
   netClient?: NetClient;
   remotePlayers?: Map<string, RemotePlayer>;
+  character?: string;
 }
 
 export default function GameCanvas({
   onStateChange,
   netClient,
   remotePlayers,
+  character = "Boy1",
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -30,8 +32,8 @@ export default function GameCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    return startLoop(canvas, onStateChange, netClient, () => remoteRef.current);
-  }, [onStateChange, netClient]);
+    return startLoop(canvas, onStateChange, netClient, () => remoteRef.current, character);
+  }, [onStateChange, netClient, character]);
 
   useEffect(() => {
     console.log("🎮 GameCanvas mounted");

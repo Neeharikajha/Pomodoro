@@ -13,9 +13,12 @@ export interface RemotePlayer {
   id: string;
   name: string;
   avatar: string;
+  character: string;
   x: number;
   y: number;
   state: "walking" | "sitting";
+  seatTimer: number; // seconds seated (sent by remote)
+  seatStart: number; // local timestamp when sitting started (for live ticking)
 }
 
 export type NetEventCallback = (
@@ -79,6 +82,7 @@ export function createNetClient(
           id: localPlayer.id,
           name: localPlayer.name,
           avatar: localPlayer.avatar,
+          character: localPlayer.character,
         }),
       );
     });
@@ -98,10 +102,14 @@ export function createNetClient(
   function handleMessage(msg: any) {
     switch (msg.type) {
       case "room_snapshot": {
-        // Full list of players already in the room
         for (const p of msg.players) {
           if (p.id !== localPlayer.id) {
-            remotePlayers.set(p.id, p);
+            remotePlayers.set(p.id, {
+              ...p,
+              character: p.character ?? "",
+              seatTimer: p.seatTimer ?? 0,
+              seatStart: p.state === "sitting" ? performance.now() : 0,
+            });
           }
         }
         onUpdate(new Map(remotePlayers));
@@ -109,7 +117,12 @@ export function createNetClient(
       }
       case "player_joined": {
         if (msg.player.id !== localPlayer.id) {
-          remotePlayers.set(msg.player.id, msg.player);
+          remotePlayers.set(msg.player.id, {
+            ...msg.player,
+            character: msg.player.character ?? "",
+            seatTimer: msg.player.seatTimer ?? 0,
+            seatStart: msg.player.state === "sitting" ? performance.now() : 0,
+          });
           onUpdate(new Map(remotePlayers));
         }
         break;
@@ -117,9 +130,15 @@ export function createNetClient(
       case "player_moved": {
         const p = remotePlayers.get(msg.id);
         if (p) {
+          const wasSitting = p.state === "sitting";
+          const nowSitting = msg.state === "sitting";
           p.x = msg.x;
           p.y = msg.y;
           p.state = msg.state;
+          // Only update seatTimer while sitting — preserve last value when standing
+          if (nowSitting) p.seatTimer = msg.seatTimer ?? p.seatTimer;
+          if (!wasSitting && nowSitting) p.seatStart = performance.now();
+          if (wasSitting && !nowSitting) p.seatStart = 0;
           onUpdate(new Map(remotePlayers));
         }
         break;
@@ -133,7 +152,12 @@ export function createNetClient(
   }
 
   // ── Send local player position (called every frame from loop.ts) ──────────
-  function sendMove(x: number, y: number, state: "walking" | "sitting") {
+  function sendMove(
+    x: number,
+    y: number,
+    state: "walking" | "sitting",
+    seatTimer = 0,
+  ) {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     socket.send(
       JSON.stringify({
@@ -142,6 +166,7 @@ export function createNetClient(
         x: Math.round(x),
         y: Math.round(y),
         state,
+        seatTimer: Math.round(seatTimer),
       }),
     );
   }
