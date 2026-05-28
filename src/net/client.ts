@@ -1,14 +1,6 @@
-// src/net/client.ts
-// Wraps the PartyKit WebSocket connection.
-// Handles: connecting, joining a room, sending position, receiving others.
-//
-// Random room: we call the server's HTTP endpoint on a well-known "lobby"
-// room to find an open room, then connect to it.
-
-import PartySocket from "partysocket";
+import { io, Socket } from "socket.io-client";
 import type { LocalPlayer, RoomId } from "./types";
 
-// Shape of a remote player as we track them locally
 export interface RemotePlayer {
   id: string;
   name: string;
@@ -17,7 +9,7 @@ export interface RemotePlayer {
   x: number;
   y: number;
   state: "walking" | "sitting";
-  seatTimer: number; // seconds seated (from server)
+  seatTimer: number;
   micMuted: boolean;
   videoEnabled: boolean;
 }
@@ -36,34 +28,16 @@ export interface WebRTCSignalMessage {
   payload: unknown;
 }
 
-const PARTYKIT_HOST = import.meta.env.DEV
-  ? "127.0.0.1:1999" // local dev server (npx partykit dev)
-  : "pomoverse.neeharikajha.partykit.dev";
+const SERVER_URL = import.meta.env.DEV
+  ? "http://localhost:3000"
+  : window.location.origin;
 
-// ─── Random room discovery ────────────────────────────────────────────────────
-// We keep a fixed list of "known" room IDs and check which ones have space.
-// Simple and requires no separate lobby server.
 const RANDOM_POOL = ["open-01", "open-02", "open-03", "open-04", "open-05"];
 
 async function findOpenRoom(): Promise<RoomId> {
-  for (const roomId of RANDOM_POOL) {
-    try {
-      const res = await fetch(
-        `https://${PARTYKIT_HOST}/parties/main/${roomId}`,
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.open) return roomId;
-      }
-    } catch {
-      // network error on this room — try next
-    }
-  }
-  // fallback: just join the first pool room
   return RANDOM_POOL[0];
 }
 
-// ─── Main client factory ──────────────────────────────────────────────────────
 export function createNetClient(
   localPlayer: LocalPlayer,
   roomId: RoomId,
@@ -73,46 +47,51 @@ export function createNetClient(
 ) {
   const remotePlayers = new Map<string, RemotePlayer>();
   let resolvedRoomId = roomId;
-  let socket: PartySocket | null = null;
+  let socket: Socket | null = null;
 
-  // ── Connect (async so we can resolve random room first) ───────────────────
   async function connect() {
     if (mode === "random") {
       resolvedRoomId = await findOpenRoom();
     }
 
-    socket = new PartySocket({
-      host: PARTYKIT_HOST,
-      room: resolvedRoomId,
+    socket = io(SERVER_URL, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
     });
 
-    socket.addEventListener("open", () => {
-      // Announce ourselves to the room
-      socket!.send(
-        JSON.stringify({
-          type: "join",
+    socket.on("connect", () => {
+      console.log("[CLIENT] Connected to server");
+      socket!.emit("join", {
+        roomId: resolvedRoomId,
+        player: {
           id: localPlayer.id,
           name: localPlayer.name,
           avatar: localPlayer.avatar,
           character: localPlayer.character,
           micMuted: true,
           videoEnabled: false,
-        }),
-      );
+        },
+      });
     });
 
-    socket.addEventListener("message", (evt) => {
-      const msg = JSON.parse(evt.data);
+    socket.on("message", (msg: any) => {
+      console.log("[CLIENT] Message received:", msg.type);
       handleMessage(msg);
     });
 
-    socket.addEventListener("close", () => {
+    socket.on("disconnect", () => {
+      console.log("[CLIENT] Disconnected from server");
       remotePlayers.clear();
       onUpdate(new Map(remotePlayers));
     });
+
+    socket.on("error", (error: any) => {
+      console.error("[CLIENT] Socket error:", error);
+    });
   }
 
-  // ── Handle incoming messages ───────────────────────────────────────────────
   function handleMessage(msg: any) {
     switch (msg.type) {
       case "room_snapshot": {
@@ -170,22 +149,6 @@ export function createNetClient(
         onUpdate(new Map(remotePlayers));
         break;
       }
-      case "timer_updates": {
-        // Handle live timer updates from server
-        let hasUpdates = false;
-        for (const update of msg.updates) {
-          const p = remotePlayers.get(update.id);
-          if (p && p.state === "sitting" && p.seatTimer !== update.seatTimer) {
-            // Create new player object to trigger React re-render
-            remotePlayers.set(update.id, { ...p, seatTimer: update.seatTimer });
-            hasUpdates = true;
-          }
-        }
-        if (hasUpdates) {
-          onUpdate(new Map(remotePlayers));
-        }
-        break;
-      }
       case "webrtc_signal": {
         callbacks.onWebRTCSignal?.({
           fromId: msg.fromId,
@@ -197,63 +160,48 @@ export function createNetClient(
     }
   }
 
-  // ── Send local player position (called every frame from loop.ts) ──────────
   function sendMove(
     x: number,
     y: number,
     state: "walking" | "sitting",
     seatTimer = 0,
   ) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(
-      JSON.stringify({
-        type: "move",
-        id: localPlayer.id,
-        x: Math.round(x),
-        y: Math.round(y),
-        state,
-        seatTimer: Math.round(seatTimer),
-      }),
-    );
+    if (!socket || !socket.connected) return;
+    socket.emit("move", {
+      x: Math.round(x),
+      y: Math.round(y),
+      state,
+      seatTimer: Math.round(seatTimer),
+    });
   }
 
-  // ── Clean disconnect ──────────────────────────────────────────────────────
   function disconnect() {
     if (!socket) return;
-    socket.send(JSON.stringify({ type: "leave", id: localPlayer.id }));
-    socket.close();
+    socket.disconnect();
   }
 
-  // ── Expose resolved room ID (useful for display after random join) ────────
   function getRoomId(): RoomId {
     return resolvedRoomId;
   }
 
   function sendMediaState(micMuted: boolean, videoEnabled: boolean) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(
-      JSON.stringify({
-        type: "media_state",
-        id: localPlayer.id,
-        micMuted,
-        videoEnabled,
-      }),
-    );
+    if (!socket || !socket.connected) return;
+    socket.emit("media_state", {
+      micMuted,
+      videoEnabled,
+    });
   }
 
   function sendWebRTCSignal(toId: string, payload: unknown) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(
-      JSON.stringify({
-        type: "webrtc_signal",
-        fromId: localPlayer.id,
-        toId,
-        payload,
-      }),
-    );
+    if (!socket || !socket.connected) return;
+    socket.emit("webrtc_signal", {
+      fromId: localPlayer.id,
+      toId,
+      payload,
+    });
   }
 
-  connect(); // fire and forget — socket events handle the rest
+  connect();
 
   return {
     sendMove,
