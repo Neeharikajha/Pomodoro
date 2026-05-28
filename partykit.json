@@ -1,5 +1,6 @@
 {
-  "name": "cafe-sim",
+  "name": "pomoverse",
   "main": "party/server.ts",
-  "compatibilityDate": "2024-03-26"
+  "compatibilityDate": "2024-03-26",
+  "serve": "dist"
 }

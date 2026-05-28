@@ -72,7 +72,6 @@ export default function GameCanvas({
         boxShadow: '0 10px 50px rgba(0,0,0,0.3)'
       }}
     >
-      {console.log("GameCanvas div rendering")}
       <div
         ref={worldRef}
         className="absolute top-0 left-0 z-0"
