@@ -7,7 +7,7 @@
 import PartySocket from "partysocket";
 const PARTYKIT_HOST = import.meta.env.DEV
     ? "127.0.0.1:1999" // local dev server (npx partykit dev)
-    : "cafe-sim.YOUR_USERNAME.partykit.dev"; // ← replace with your deployed URL after: npx partykit deploy
+    : "pomoverse.neeharikajha.partykit.dev";
 // ─── Random room discovery ────────────────────────────────────────────────────
 // We keep a fixed list of "known" room IDs and check which ones have space.
 // Simple and requires no separate lobby server.

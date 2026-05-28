@@ -2,5 +2,8 @@
   "name": "pomoverse",
   "main": "party/server.ts",
   "compatibilityDate": "2024-03-26",
-  "serve": "dist"
+  "serve": "dist",
+  "build": {
+    "command": "npm run build"
+  }
 }
