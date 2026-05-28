@@ -15,28 +15,51 @@ interface RoomPlayer {
   id: string;
   name: string;
   avatar: string;
+  character: string;
   x: number;
   y: number;
   state: "walking" | "sitting";
+  seatTimer: number; // seconds seated (accumulated)
+  seatStartTime: number; // timestamp when sitting started (for server-side timer calculation)
+  micMuted: boolean;
+  videoEnabled: boolean;
 }
 
 // All message types the server handles
 type ClientMessage =
-  | { type: "join"; id: string; name: string; avatar: string }
+  | {
+      type: "join";
+      id: string;
+      name: string;
+      avatar: string;
+      character: string;
+      micMuted: boolean;
+      videoEnabled: boolean;
+    }
   | {
       type: "move";
       id: string;
       x: number;
       y: number;
       state: "walking" | "sitting";
+      seatTimer: number;
     }
+  | { type: "media_state"; id: string; micMuted: boolean; videoEnabled: boolean }
+  | { type: "webrtc_signal"; fromId: string; toId: string; payload: unknown }
   | { type: "leave"; id: string };
 
 export default class CafeServer implements Party.Server {
   // players keyed by their connection id
   players: Map<string, RoomPlayer> = new Map();
+  // Timer to broadcast updates every second
+  private timerInterval: NodeJS.Timeout | null = null;
 
-  constructor(readonly room: Party.Room) {}
+  constructor(readonly room: Party.Room) {
+    // Start timer broadcast interval
+    this.timerInterval = setInterval(() => {
+      this.broadcastTimerUpdates();
+    }, 1000); // Update every second
+  }
 
   // ── HTTP GET: return room info (used for random room discovery) ──────────
   async onRequest(req: Party.Request): Promise<Response> {
@@ -75,12 +98,24 @@ export default class CafeServer implements Party.Server {
         id: msg.id,
         name: msg.name,
         avatar: msg.avatar,
+        character: msg.character,
         x: 480,
         y: 320,
         state: "walking",
+        seatTimer: 0,
+        seatStartTime: 0,
+        micMuted: msg.micMuted ?? true,
+        videoEnabled: msg.videoEnabled ?? false,
       };
       this.players.set(msg.id, player);
       (sender as any).__playerId = msg.id; // attach so onClose can find it
+
+      // Restart timer if this is the first player
+      if (this.players.size === 1 && !this.timerInterval) {
+        this.timerInterval = setInterval(() => {
+          this.broadcastTimerUpdates();
+        }, 1000);
+      }
 
       this.room.broadcast(JSON.stringify({ type: "player_joined", player }), [
         sender.id,
@@ -90,8 +125,32 @@ export default class CafeServer implements Party.Server {
     if (msg.type === "move") {
       const player = this.players.get(msg.id);
       if (!player) return;
+
+      const wasWalking = player.state === "walking";
+      const nowSitting = msg.state === "sitting";
+
       player.x = msg.x;
       player.y = msg.y;
+
+      // Handle state transitions
+      if (wasWalking && nowSitting) {
+        // Started sitting - record start time and use client's timer
+        player.seatStartTime = Date.now();
+        player.seatTimer = msg.seatTimer;
+      } else if (player.state === "sitting" && msg.state === "walking") {
+        // Stopped sitting - accumulate time and reset start
+        if (player.seatStartTime > 0) {
+          const sessionTime = Math.floor(
+            (Date.now() - player.seatStartTime) / 1000,
+          );
+          player.seatTimer += sessionTime;
+        }
+        player.seatStartTime = 0;
+      } else if (nowSitting) {
+        // Still sitting - update timer from client (handles reconnections)
+        player.seatTimer = msg.seatTimer;
+      }
+
       player.state = msg.state;
 
       // Relay to everyone except sender
@@ -102,8 +161,39 @@ export default class CafeServer implements Party.Server {
           x: msg.x,
           y: msg.y,
           state: msg.state,
+          seatTimer: this.getCurrentSeatTimer(player),
+          micMuted: player.micMuted,
+          videoEnabled: player.videoEnabled,
         }),
         [sender.id],
+      );
+    }
+
+    if (msg.type === "media_state") {
+      const player = this.players.get(msg.id);
+      if (!player) return;
+      player.micMuted = msg.micMuted;
+      player.videoEnabled = msg.videoEnabled;
+      this.room.broadcast(
+        JSON.stringify({
+          type: "player_media_updated",
+          id: msg.id,
+          micMuted: msg.micMuted,
+          videoEnabled: msg.videoEnabled,
+        }),
+        [sender.id],
+      );
+    }
+
+    if (msg.type === "webrtc_signal") {
+      // Relay signaling payload to all clients; receiver filters by toId.
+      this.room.broadcast(
+        JSON.stringify({
+          type: "webrtc_signal",
+          fromId: msg.fromId,
+          toId: msg.toId,
+          payload: msg.payload,
+        }),
       );
     }
 
@@ -126,6 +216,46 @@ export default class CafeServer implements Party.Server {
         );
         break;
       }
+    }
+
+    // Clean up timer if no players left
+    if (this.players.size === 0 && this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+
+  // ── Helper methods for timer management ──────────────────────────────────
+  private getCurrentSeatTimer(player: RoomPlayer): number {
+    if (player.state === "sitting" && player.seatStartTime > 0) {
+      const sessionTime = Math.floor(
+        (Date.now() - player.seatStartTime) / 1000,
+      );
+      return player.seatTimer + sessionTime;
+    }
+    return player.seatTimer;
+  }
+
+  private broadcastTimerUpdates(): void {
+    const updates: any[] = [];
+
+    for (const player of this.players.values()) {
+      if (player.state === "sitting" && player.seatStartTime > 0) {
+        const currentTimer = this.getCurrentSeatTimer(player);
+        updates.push({
+          id: player.id,
+          seatTimer: currentTimer,
+        });
+      }
+    }
+
+    if (updates.length > 0) {
+      this.room.broadcast(
+        JSON.stringify({
+          type: "timer_updates",
+          updates,
+        }),
+      );
     }
   }
 }

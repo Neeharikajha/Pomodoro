@@ -17,13 +17,24 @@ export interface RemotePlayer {
   x: number;
   y: number;
   state: "walking" | "sitting";
-  seatTimer: number; // seconds seated (sent by remote)
-  seatStart: number; // local timestamp when sitting started (for live ticking)
+  seatTimer: number; // seconds seated (from server)
+  micMuted: boolean;
+  videoEnabled: boolean;
 }
 
 export type NetEventCallback = (
   remotePlayers: Map<string, RemotePlayer>,
 ) => void;
+
+export interface NetCallbacks {
+  onWebRTCSignal?: (signal: WebRTCSignalMessage) => void;
+}
+
+export interface WebRTCSignalMessage {
+  fromId: string;
+  toId: string;
+  payload: unknown;
+}
 
 const PARTYKIT_HOST = import.meta.env.DEV
   ? "127.0.0.1:1999" // local dev server (npx partykit dev)
@@ -58,6 +69,7 @@ export function createNetClient(
   roomId: RoomId,
   mode: "create" | "join" | "random",
   onUpdate: NetEventCallback,
+  callbacks: NetCallbacks = {},
 ) {
   const remotePlayers = new Map<string, RemotePlayer>();
   let resolvedRoomId = roomId;
@@ -83,6 +95,8 @@ export function createNetClient(
           name: localPlayer.name,
           avatar: localPlayer.avatar,
           character: localPlayer.character,
+          micMuted: true,
+          videoEnabled: false,
         }),
       );
     });
@@ -108,7 +122,8 @@ export function createNetClient(
               ...p,
               character: p.character ?? "",
               seatTimer: p.seatTimer ?? 0,
-              seatStart: p.state === "sitting" ? performance.now() : 0,
+            micMuted: p.micMuted ?? true,
+            videoEnabled: p.videoEnabled ?? false,
             });
           }
         }
@@ -121,7 +136,8 @@ export function createNetClient(
             ...msg.player,
             character: msg.player.character ?? "",
             seatTimer: msg.player.seatTimer ?? 0,
-            seatStart: msg.player.state === "sitting" ? performance.now() : 0,
+            micMuted: msg.player.micMuted ?? true,
+            videoEnabled: msg.player.videoEnabled ?? false,
           });
           onUpdate(new Map(remotePlayers));
         }
@@ -130,15 +146,21 @@ export function createNetClient(
       case "player_moved": {
         const p = remotePlayers.get(msg.id);
         if (p) {
-          const wasSitting = p.state === "sitting";
-          const nowSitting = msg.state === "sitting";
           p.x = msg.x;
           p.y = msg.y;
           p.state = msg.state;
-          // Only update seatTimer while sitting — preserve last value when standing
-          if (nowSitting) p.seatTimer = msg.seatTimer ?? p.seatTimer;
-          if (!wasSitting && nowSitting) p.seatStart = performance.now();
-          if (wasSitting && !nowSitting) p.seatStart = 0;
+          p.seatTimer = msg.seatTimer ?? 0;
+          p.micMuted = msg.micMuted ?? p.micMuted;
+          p.videoEnabled = msg.videoEnabled ?? p.videoEnabled;
+          onUpdate(new Map(remotePlayers));
+        }
+        break;
+      }
+      case "player_media_updated": {
+        const p = remotePlayers.get(msg.id);
+        if (p) {
+          p.micMuted = msg.micMuted ?? p.micMuted;
+          p.videoEnabled = msg.videoEnabled ?? p.videoEnabled;
           onUpdate(new Map(remotePlayers));
         }
         break;
@@ -146,6 +168,30 @@ export function createNetClient(
       case "player_left": {
         remotePlayers.delete(msg.id);
         onUpdate(new Map(remotePlayers));
+        break;
+      }
+      case "timer_updates": {
+        // Handle live timer updates from server
+        let hasUpdates = false;
+        for (const update of msg.updates) {
+          const p = remotePlayers.get(update.id);
+          if (p && p.state === "sitting" && p.seatTimer !== update.seatTimer) {
+            // Create new player object to trigger React re-render
+            remotePlayers.set(update.id, { ...p, seatTimer: update.seatTimer });
+            hasUpdates = true;
+          }
+        }
+        if (hasUpdates) {
+          onUpdate(new Map(remotePlayers));
+        }
+        break;
+      }
+      case "webrtc_signal": {
+        callbacks.onWebRTCSignal?.({
+          fromId: msg.fromId,
+          toId: msg.toId,
+          payload: msg.payload,
+        });
         break;
       }
     }
@@ -183,9 +229,39 @@ export function createNetClient(
     return resolvedRoomId;
   }
 
+  function sendMediaState(micMuted: boolean, videoEnabled: boolean) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(
+      JSON.stringify({
+        type: "media_state",
+        id: localPlayer.id,
+        micMuted,
+        videoEnabled,
+      }),
+    );
+  }
+
+  function sendWebRTCSignal(toId: string, payload: unknown) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(
+      JSON.stringify({
+        type: "webrtc_signal",
+        fromId: localPlayer.id,
+        toId,
+        payload,
+      }),
+    );
+  }
+
   connect(); // fire and forget — socket events handle the rest
 
-  return { sendMove, disconnect, getRoomId };
+  return {
+    sendMove,
+    sendMediaState,
+    sendWebRTCSignal,
+    disconnect,
+    getRoomId,
+  };
 }
 
 export type NetClient = ReturnType<typeof createNetClient>;

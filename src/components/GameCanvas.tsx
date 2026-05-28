@@ -40,18 +40,18 @@ export default function GameCanvas({
     console.log("📐 Canvas dimensions:", { CANVAS_WIDTH, CANVAS_HEIGHT });
     console.log("🌐 NetClient:", netClient ? "connected" : "not connected");
     console.log("👥 Remote players count:", remotePlayers?.size || 0);
-  }, [netClient, remotePlayers]);
+  }, []); // Only run once on mount
 
   return (
     <div className="fixed inset-0 w-screen h-screen">
-      <CafeLeft />
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
-        className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+        className="absolute top-0 left-0 w-full h-full pointer-events-auto z-10"
         style={{ backgroundColor: "transparent" }}
       />
+      <CafeLeft />
     </div>
   );
 }

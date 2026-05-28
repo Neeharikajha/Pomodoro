@@ -16,17 +16,12 @@ function drawRemotePlayer(
   ctx: CanvasRenderingContext2D,
   player: RemotePlayer,
 ): void {
-  const { x, y, state, avatar, character, name, seatTimer, seatStart } = player;
+  const { x, y, state, avatar, character, name, seatTimer } = player;
   const w = 72;
   const h = 72;
 
-  // Live seated seconds: base from last broadcast + elapsed since sitting started locally
-  const liveSecs =
-    state === "sitting" && seatStart > 0
-      ? seatTimer + Math.floor((performance.now() - seatStart) / 1000)
-      : seatTimer;
-
-  const timeLabel = formatTime(liveSecs);
+  // Use the seatTimer directly from the server - no local calculation needed
+  const timeLabel = formatTime(seatTimer);
   const sprite = character ? getSprite(character) : null;
   const spriteReady = sprite && sprite.complete && sprite.naturalWidth > 0;
 
@@ -45,8 +40,14 @@ function drawRemotePlayer(
     ctx.fillText(avatar, x + w / 2, y + h / 2);
     ctx.textBaseline = "alphabetic";
     ctx.textAlign = "left";
+  } else {
+    // Fallback colored box when sprite isn't loaded (like local player)
+    ctx.fillStyle = state === "sitting" ? "#facc15" : "#60a5fa";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = state === "sitting" ? "#78350f" : "#1d4ed8";
+    ctx.fillRect(x + w * 0.3, y + h * 0.25, w * 0.15, w * 0.15);
+    ctx.fillRect(x + w * 0.55, y + h * 0.25, w * 0.15, w * 0.15);
   }
-  // If neither ready: invisible until loaded (no yellow box)
 
   ctx.restore();
 

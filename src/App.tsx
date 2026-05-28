@@ -1,14 +1,17 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import GameCanvas from "./components/GameCanvas";
 import HUD from "./components/HUD";
 import RoomLobby from "./components/RoomLobby";
+import MediaOverlay from "./components/MediaOverlay";
 import type { PlayerState } from "./game/types";
 import type { LocalPlayer, RoomId, LobbyState } from "./net/types";
 import {
   createNetClient,
   type NetClient,
   type RemotePlayer,
+  type WebRTCSignalMessage,
 } from "./net/client";
+import { useRoomMedia } from "./net/media";
 
 export default function App() {
   const [timerDisplay, setTimerDisplay] = useState<string>("00:00");
@@ -24,6 +27,10 @@ export default function App() {
   );
   const [resolvedRoomId, setResolvedRoomId] = useState<RoomId | null>(null);
   const [netClient, setNetClient] = useState<NetClient | null>(null);
+  const [videoSize, setVideoSize] = useState(120);
+  const mediaSignalHandlerRef = useRef<
+    ((signal: WebRTCSignalMessage) => Promise<void>) | null
+  >(null);
 
   const handleStateChange = useCallback(
     (state: PlayerState, display: string) => {
@@ -33,13 +40,27 @@ export default function App() {
     [],
   );
 
+  const media = useRoomMedia(lobby.localPlayer?.id ?? "", netClient, remotePlayers);
+
+  useEffect(() => {
+    mediaSignalHandlerRef.current = media.handleSignal;
+  }, [media.handleSignal]);
+
   function handleEnter(
     player: LocalPlayer,
     roomId: RoomId,
     mode: "create" | "join" | "random",
   ) {
-    const client = createNetClient(player, roomId, mode, (players) =>
-      setRemotePlayers(new Map(players)),
+    const client = createNetClient(
+      player,
+      roomId,
+      mode,
+      (players) => setRemotePlayers(new Map(players)),
+      {
+        onWebRTCSignal: (signal) => {
+          void mediaSignalHandlerRef.current?.(signal);
+        },
+      },
     );
     setNetClient(client);
     setLobby({ phase: "game", localPlayer: player, roomId, mode });
@@ -128,6 +149,22 @@ export default function App() {
       <div className="fixed top-4 right-4 z-50">
         <HUD time={timerDisplay} status={playerState} />
       </div>
+
+      <MediaOverlay
+        remotePlayers={remotePlayers}
+        remoteStreams={media.remoteStreams}
+        localStream={media.localStream}
+        micMuted={media.micMuted}
+        videoEnabled={media.videoEnabled}
+        videoSize={videoSize}
+        onVideoSizeChange={setVideoSize}
+        onToggleMic={() => {
+          void media.toggleMic();
+        }}
+        onToggleVideo={() => {
+          void media.toggleVideo();
+        }}
+      />
 
       {/* Fullscreen canvas */}
       <GameCanvas

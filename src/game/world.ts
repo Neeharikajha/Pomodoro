@@ -194,7 +194,6 @@ const chairT2b = {
 };
 // Bottom right group (scale 1.5 → chair 55x55, table 75x75)
 const botChair1 = { x: rxb(RIGHT + 110, 55), y: by(60, 55), w: 55, h: 55 };
-const botTable = { x: rxb(RIGHT + 120, 75), y: by(60, 75), w: 75, h: 75 };
 const botChair2 = { x: rxb(RIGHT + 200, 55), y: by(60, 55), w: 55, h: 55 };
 // CommonSides (scale 1.5 → 58x181)
 const csFront = {
