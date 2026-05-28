@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { RemotePlayer } from "../net/client";
+import type { CameraView } from "../game/types";
 
 interface Props {
   remotePlayers: Map<string, RemotePlayer>;
@@ -11,16 +12,19 @@ interface Props {
   onVideoSizeChange: (size: number) => void;
   onToggleMic: () => void;
   onToggleVideo: () => void;
+  view: CameraView;
 }
 
 function RemoteVideoTile({
   player,
   stream,
   videoSize,
+  view,
 }: {
   player: RemotePlayer;
   stream?: MediaStream;
   videoSize: number;
+  view: CameraView;
 }) {
   const ref = useRef<HTMLVideoElement | null>(null);
 
@@ -39,8 +43,8 @@ function RemoteVideoTile({
   const hasLiveVideoTrack =
     !!stream && stream.getVideoTracks().some((track) => track.readyState === "live");
 
-  const left = player.x + 36 - videoSize / 2;
-  const top = player.y - videoSize - 24;
+  const left = (player.x - view.x) * view.zoom + 36 * view.zoom - videoSize / 2;
+  const top = (player.y - view.y) * view.zoom - videoSize - 24;
 
   if (!player.videoEnabled || !hasLiveVideoTrack) return null;
 
@@ -118,6 +122,7 @@ export default function MediaOverlay({
   onVideoSizeChange,
   onToggleMic,
   onToggleVideo,
+  view,
 }: Props) {
   const remoteList = useMemo(() => Array.from(remotePlayers.values()), [remotePlayers]);
 
@@ -161,6 +166,7 @@ export default function MediaOverlay({
             player={player}
             stream={remoteStreams.get(player.id)}
             videoSize={videoSize}
+            view={view}
           />
         ))}
       </div>

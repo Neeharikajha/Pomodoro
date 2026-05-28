@@ -36,6 +36,14 @@ export interface GameState {
   isRunning: boolean;
 }
 
+export interface CameraView {
+  x: number;
+  y: number;
+  zoom: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}
+
 export type StateChangeCallback = (
   playerState: PlayerState,
   timerDisplay: string,

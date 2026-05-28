@@ -1,5 +1,5 @@
 // scene.ts
-import { WALLS, BENCHES, FURNITURE, LEFT_BOTTOM_FURNITURE, RIGHT_ALL_FURNITURE, CANVAS_WIDTH, CANVAS_HEIGHT, } from "./world";
+import { WALLS, BENCHES, FURNITURE, LEFT_BOTTOM_FURNITURE, RIGHT_ALL_FURNITURE, WORLD_WIDTH, WORLD_HEIGHT, } from "./world";
 // 🟧 Draw Benches — small dot indicator only
 function drawBenches(ctx) {
     for (const bench of BENCHES) {
@@ -14,7 +14,7 @@ function drawBenches(ctx) {
 }
 // 🎬 Main Scene Renderer
 export function drawScene(ctx) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     drawBenches(ctx);
 }
 export function getSolidRects() {
@@ -26,4 +26,4 @@ export function getSolidRects() {
         // BENCHES excluded — player must walk into sitZone to trigger sit
     ];
 }
-export { CANVAS_WIDTH, CANVAS_HEIGHT };
+export { WORLD_WIDTH, WORLD_HEIGHT };

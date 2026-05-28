@@ -4,6 +4,7 @@ import HUD from "./components/HUD";
 import RoomLobby from "./components/RoomLobby";
 import MediaOverlay from "./components/MediaOverlay";
 import type { PlayerState } from "./game/types";
+import type { CameraView } from "./game/types";
 import type { LocalPlayer, RoomId, LobbyState } from "./net/types";
 import {
   createNetClient,
@@ -77,6 +78,13 @@ export default function App() {
   const [resolvedRoomId, setResolvedRoomId] = useState<RoomId | null>(null);
   const [netClient, setNetClient] = useState<NetClient | null>(null);
   const [videoSize, setVideoSize] = useState(120);
+  const [view, setView] = useState<CameraView>({
+    x: 0,
+    y: 0,
+    zoom: 1,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  });
   const mediaSignalHandlerRef = useRef<
     ((signal: WebRTCSignalMessage) => Promise<void>) | null
   >(null);
@@ -296,6 +304,7 @@ export default function App() {
         onToggleVideo={() => {
           void media.toggleVideo();
         }}
+        view={view}
       />
 
       {/* Fullscreen canvas */}
@@ -304,6 +313,7 @@ export default function App() {
         netClient={netClient ?? undefined}
         remotePlayers={remotePlayers}
         character={localPlayer!.character}
+        onViewChange={setView}
       />
 
       {/* Controls hint - fixed at bottom */}

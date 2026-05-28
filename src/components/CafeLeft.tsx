@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { CSSProperties } from "react";
 import BackGround from "../assets/components/layerOne/BackGround.svg";
 import Fridge from "../assets/components/layerOne/Fridge.svg";
 import FridgeSide from "../assets/components/layerOne/FridgeSide.svg";
@@ -9,13 +10,18 @@ import Drawer from "../assets/components/layerOne/Drawer.svg";
 import LeftBottom from "./LeftBottom";
 import RightAll from "./RightAll";
 
-export default function CafeLeft() {
+interface Props {
+    className?: string;
+    style?: CSSProperties;
+}
+
+export default function CafeLeft({ className, style }: Props) {
     useEffect(() => {
         console.log("🏪 CafeLeft component mounted");
     }, []);
 
     return (
-        <div className="fixed inset-0 w-screen h-screen overflow-hidden">
+        <div className={`absolute top-0 left-0 overflow-hidden ${className ?? ""}`} style={style}>
 
             {/* Background */}
             <img

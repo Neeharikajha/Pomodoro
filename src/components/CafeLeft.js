@@ -9,11 +9,11 @@ import CommonSide from "../assets/components/layerOne/CommonSide.svg";
 import Drawer from "../assets/components/layerOne/Drawer.svg";
 import LeftBottom from "./LeftBottom";
 import RightAll from "./RightAll";
-export default function CafeLeft() {
+export default function CafeLeft({ className, style }) {
     useEffect(() => {
         console.log("🏪 CafeLeft component mounted");
     }, []);
-    return (_jsxs("div", { className: "fixed inset-0 w-screen h-screen overflow-hidden", children: [_jsx("img", { src: BackGround, alt: "Background", className: "absolute inset-0 w-full h-full object-cover" }), _jsxs("div", { className: "absolute inset-0 w-full h-full z-10", children: [_jsx("img", { src: Fridge, alt: "Fridge", className: "absolute", style: {
+    return (_jsxs("div", { className: `absolute top-0 left-0 overflow-hidden ${className ?? ""}`, style: style, children: [_jsx("img", { src: BackGround, alt: "Background", className: "absolute inset-0 w-full h-full object-cover" }), _jsxs("div", { className: "absolute inset-0 w-full h-full z-10", children: [_jsx("img", { src: Fridge, alt: "Fridge", className: "absolute", style: {
                             left: "50px",
                             top: "-50px",
                             width: "120px",

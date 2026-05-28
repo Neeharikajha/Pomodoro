@@ -6,8 +6,8 @@ import {
   FURNITURE,
   LEFT_BOTTOM_FURNITURE,
   RIGHT_ALL_FURNITURE,
-  CANVAS_WIDTH,
-  CANVAS_HEIGHT,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
 } from "./world";
 import type { Rect } from "./types";
 
@@ -27,7 +27,7 @@ function drawBenches(ctx: CanvasRenderingContext2D): void {
 
 // 🎬 Main Scene Renderer
 export function drawScene(ctx: CanvasRenderingContext2D): void {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   drawBenches(ctx);
 }
 
@@ -41,4 +41,4 @@ export function getSolidRects(): Rect[] {
   ];
 }
 
-export { CANVAS_WIDTH, CANVAS_HEIGHT };
+export { WORLD_WIDTH, WORLD_HEIGHT };

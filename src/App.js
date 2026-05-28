@@ -55,6 +55,13 @@ export default function App() {
     const [resolvedRoomId, setResolvedRoomId] = useState(null);
     const [netClient, setNetClient] = useState(null);
     const [videoSize, setVideoSize] = useState(120);
+    const [view, setView] = useState({
+        x: 0,
+        y: 0,
+        zoom: 1,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+    });
     const mediaSignalHandlerRef = useRef(null);
     const navigate = useCallback((nextRoute, replace = false) => {
         if (window.location.pathname !== nextRoute) {
@@ -181,5 +188,5 @@ export default function App() {
                     void media.toggleMic();
                 }, onToggleVideo: () => {
                     void media.toggleVideo();
-                } }), _jsx(GameCanvas, { onStateChange: handleStateChange, netClient: netClient ?? undefined, remotePlayers: remotePlayers, character: localPlayer.character }), _jsx("p", { className: "fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-stone-600 text-xs font-mono bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg", children: "WASD / arrow keys to move \u00A0\u00B7\u00A0 E to sit / stand" })] }));
+                }, view: view }), _jsx(GameCanvas, { onStateChange: handleStateChange, netClient: netClient ?? undefined, remotePlayers: remotePlayers, character: localPlayer.character, onViewChange: setView }), _jsx("p", { className: "fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-stone-600 text-xs font-mono bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg", children: "WASD / arrow keys to move \u00A0\u00B7\u00A0 E to sit / stand" })] }));
 }
