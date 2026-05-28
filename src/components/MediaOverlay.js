@@ -5,7 +5,7 @@ function RemoteVideoTile({ player, stream, videoSize, }) {
     useEffect(() => {
         if (!ref.current)
             return;
-        if (!stream) {
+        if (!stream || !player.videoEnabled) {
             ref.current.srcObject = null;
             return;
         }
@@ -18,7 +18,7 @@ function RemoteVideoTile({ player, stream, videoSize, }) {
     const hasLiveVideoTrack = !!stream && stream.getVideoTracks().some((track) => track.readyState === "live");
     const left = player.x + 36 - videoSize / 2;
     const top = player.y - videoSize - 24;
-    if (!hasLiveVideoTrack)
+    if (!player.videoEnabled || !hasLiveVideoTrack)
         return null;
     return (_jsx("div", { className: "absolute pointer-events-none", style: {
             transform: `translate(${left}px, ${top}px)`,
@@ -32,7 +32,7 @@ function RemoteAudioSink({ stream }) {
         if (!el)
             return;
         const hasLiveAudioTrack = !!stream &&
-            stream.getAudioTracks().some((track) => track.readyState === "live" && track.enabled);
+            stream.getAudioTracks().some((track) => track.readyState === "live");
         if (!hasLiveAudioTrack) {
             el.srcObject = null;
             return;

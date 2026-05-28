@@ -129,11 +129,17 @@ export function useRoomMedia(
       };
 
       pc.ontrack = (event) => {
-        const stream = event.streams[0];
-        if (!stream) return;
+        const incomingTrack = event.track;
         setRemoteStreams((prev) => {
           const next = new Map(prev);
-          next.set(remoteId, stream);
+          const existing = next.get(remoteId) ?? new MediaStream();
+          const alreadyExists = existing
+            .getTracks()
+            .some((track) => track.id === incomingTrack.id);
+          if (!alreadyExists) {
+            existing.addTrack(incomingTrack);
+          }
+          next.set(remoteId, existing);
           return next;
         });
       };
