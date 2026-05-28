@@ -56,7 +56,7 @@ function RemoteVideoTile({
         width: videoSize,
       }}
     >
-      <div className="rounded-lg overflow-hidden border border-stone-700 bg-black/80 shadow-lg">
+      <div className="rounded-lg overflow-hidden border border-blue-400 shadow-lg" style={{ backgroundColor: 'rgba(137, 207, 240, 0.8)' }}>
         <video
           ref={ref}
           autoPlay
@@ -105,9 +105,9 @@ function LocalPreview({ stream }: { stream: MediaStream | null }) {
   if (!stream) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-44 rounded-lg overflow-hidden border border-stone-700 bg-black/80 shadow-xl">
+    <div className="fixed bottom-4 right-4 z-50 w-44 rounded-lg overflow-hidden border border-blue-400 shadow-xl" style={{ backgroundColor: 'rgba(137, 207, 240, 0.8)' }}>
       <video ref={ref} autoPlay playsInline muted className="w-full h-28 object-cover" />
-      <div className="px-2 py-1 text-[10px] text-stone-300 font-mono">you</div>
+      <div className="px-2 py-1 text-[10px] text-stone-700 font-mono">you</div>
     </div>
   );
 }
@@ -128,12 +128,12 @@ export default function MediaOverlay({
 
   return (
     <>
-      <div className="fixed top-4 left-4 z-50 bg-neutral-900/90 border border-stone-700 rounded-xl p-3 flex items-center gap-3 font-mono text-xs">
+      <div className="fixed top-4 left-4 z-50 bg-transparent backdrop-blur-sm border border-stone-700/40 shadow-lg rounded-xl px-6 py-3 flex items-center gap-6 font-mono text-xs select-none">
         <button
           onClick={onToggleMic}
           className={`px-3 py-1.5 rounded-md border transition-colors ${micMuted
-            ? "border-red-600/60 text-red-400 bg-red-950/30"
-            : "border-green-700 text-green-400 bg-green-950/30"
+            ? "border-red-600/60 text-red-700 bg-red-100/50"
+            : "border-green-700 text-green-700 bg-green-100/50"
             }`}
         >
           {micMuted ? "mic muted" : "mic on"}
@@ -141,13 +141,13 @@ export default function MediaOverlay({
         <button
           onClick={onToggleVideo}
           className={`px-3 py-1.5 rounded-md border transition-colors ${videoEnabled
-            ? "border-green-700 text-green-400 bg-green-950/30"
-            : "border-stone-600 text-stone-300 bg-stone-800/70"
+            ? "border-green-700 text-green-700 bg-green-100/50"
+            : "border-stone-600 text-stone-700 bg-stone-200/70"
             }`}
         >
           {videoEnabled ? "camera on" : "camera off"}
         </button>
-        <label className="flex items-center gap-2 text-stone-300">
+        <label className="flex items-center gap-2 text-black uppercase tracking-widest">
           video size
           <input
             type="range"

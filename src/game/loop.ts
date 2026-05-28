@@ -100,11 +100,17 @@ export function startLoop(
     const visibleWorldHeight = camera.viewportHeight / camera.zoom;
     camera.x = Math.max(
       0,
-      Math.min(player.x + player.width / 2 - visibleWorldWidth / 2, WORLD_WIDTH - visibleWorldWidth),
+      Math.min(
+        player.x + player.width / 2 - visibleWorldWidth / 2,
+        WORLD_WIDTH - visibleWorldWidth,
+      ),
     );
     camera.y = Math.max(
       0,
-      Math.min(player.y + player.height / 2 - visibleWorldHeight / 2, WORLD_HEIGHT - visibleWorldHeight),
+      Math.min(
+        player.y + player.height / 2 - visibleWorldHeight / 2,
+        WORLD_HEIGHT - visibleWorldHeight,
+      ),
     );
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);

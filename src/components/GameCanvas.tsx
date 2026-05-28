@@ -53,14 +53,26 @@ export default function GameCanvas({
   }, [onStateChange, netClient, character, onViewChange]);
 
   useEffect(() => {
-    console.log("🎮 GameCanvas mounted");
-    console.log("🗺️ Stage dimensions:", { STAGE_WIDTH, STAGE_HEIGHT });
-    console.log("🌐 NetClient:", netClient ? "connected" : "not connected");
-    console.log("👥 Remote players count:", remotePlayers?.size || 0);
+    console.log("GAMECANVAS MOUNTED");
+    console.log("Stage dimensions:", { STAGE_WIDTH, STAGE_HEIGHT });
+    console.log("NetClient:", netClient ? "connected" : "not connected");
+    console.log("Remote players count:", remotePlayers?.size || 0);
+    console.log("Canvas container classes applied");
+    console.log("Canvas should be centered now");
   }, []); // Only run once on mount
 
+  console.log("GAMECANVAS RENDERING - dimensions:", STAGE_WIDTH, "x", STAGE_HEIGHT);
+
   return (
-    <div className="fixed inset-0 w-screen h-screen">
+    <div
+      className="relative"
+      style={{
+        width: STAGE_WIDTH,
+        height: STAGE_HEIGHT,
+        boxShadow: '0 10px 50px rgba(0,0,0,0.3)'
+      }}
+    >
+      {console.log("GameCanvas div rendering")}
       <div
         ref={worldRef}
         className="absolute top-0 left-0 z-0"
@@ -70,8 +82,8 @@ export default function GameCanvas({
       </div>
       <canvas
         ref={canvasRef}
-        className="absolute top-0 left-0 w-full h-full pointer-events-auto z-10"
-        style={{ backgroundColor: "transparent" }}
+        className="absolute top-0 left-0 pointer-events-auto z-10"
+        style={{ backgroundColor: "transparent", width: STAGE_WIDTH, height: STAGE_HEIGHT }}
       />
     </div>
   );

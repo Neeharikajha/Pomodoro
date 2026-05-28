@@ -11,4 +11,9 @@ body,
 /* ADD THIS 👇 */
 body {
   margin: 0;
+  background-color: #89cff0 !important;
+}
+
+#root {
+  background-color: #89cff0 !important;
 }

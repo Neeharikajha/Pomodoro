@@ -89,6 +89,10 @@ export default function App() {
     ((signal: WebRTCSignalMessage) => Promise<void>) | null
   >(null);
 
+  useEffect(() => {
+    console.log("APP COMPONENT MOUNTED");
+  }, []);
+
   const navigate = useCallback((nextRoute: RoutePath, replace = false) => {
     if (window.location.pathname !== nextRoute) {
       if (replace) {
@@ -238,8 +242,14 @@ export default function App() {
   const displayRoomId = resolvedRoomId ?? lobby.roomId ?? "...";
   const totalPlayers = remotePlayers.size + 1;
 
+  console.log("APP RENDER - Route:", route, "Lobby phase:", lobby.phase);
+  console.log("Background should be baby blue #89CFF0");
+
   return (
-    <div className="relative w-screen h-screen bg-neutral-950">
+    <div
+      className="relative w-screen h-screen flex items-center justify-center overflow-hidden"
+      style={{ backgroundColor: '#89CFF0' }}
+    >
       {/* Room bar - fixed at top */}
       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-4 text-xs font-mono text-stone-500 bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg">
         <span>
@@ -307,14 +317,16 @@ export default function App() {
         view={view}
       />
 
-      {/* Fullscreen canvas */}
-      <GameCanvas
-        onStateChange={handleStateChange}
-        netClient={netClient ?? undefined}
-        remotePlayers={remotePlayers}
-        character={localPlayer!.character}
-        onViewChange={setView}
-      />
+      {/* Canvas wrapper - centered */}
+      <div className="flex items-center justify-center w-full h-full">
+        <GameCanvas
+          onStateChange={handleStateChange}
+          netClient={netClient ?? undefined}
+          remotePlayers={remotePlayers}
+          character={localPlayer!.character}
+          onViewChange={setView}
+        />
+      </div>
 
       {/* Controls hint - fixed at bottom */}
       <p className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 text-stone-600 text-xs font-mono bg-neutral-900/80 backdrop-blur-sm px-4 py-2 rounded-lg">
