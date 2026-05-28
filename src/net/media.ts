@@ -35,6 +35,9 @@ export function useRoomMedia(
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(
     new Map(),
   );
+  const knownRemoteIdsRef = useRef<Set<string>>(new Set());
+  const makingOfferRef = useRef<Map<string, boolean>>(new Map());
+  const ignoreOfferRef = useRef<Map<string, boolean>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
 
   const syncLocalTracksToPeers = useCallback(() => {
@@ -85,12 +88,20 @@ export function useRoomMedia(
     const stream = localStreamRef.current;
     if (stream && stream.getAudioTracks().length > 0) return stream;
     const next = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+      },
       video: false,
     });
     const merged = stream
       ? new MediaStream([...stream.getTracks(), ...next.getTracks()])
       : next;
+    merged.getAudioTracks().forEach((track) => {
+      track.contentHint = "speech";
+    });
     localStreamRef.current = merged;
     setLocalStream(merged);
     return merged;
@@ -174,17 +185,22 @@ export function useRoomMedia(
 
   const negotiate = useCallback(
     async (remoteId: string) => {
-      // Avoid offer glare: only lexicographically smaller id creates offers.
-      if (!localPlayerId || localPlayerId > remoteId) return;
       const pc = getOrCreatePeer(remoteId);
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      netClient?.sendWebRTCSignal(remoteId, {
-        kind: "offer",
-        sdp: offer,
-      });
+      if (pc.signalingState !== "stable") return;
+      if (makingOfferRef.current.get(remoteId)) return;
+      makingOfferRef.current.set(remoteId, true);
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        netClient?.sendWebRTCSignal(remoteId, {
+          kind: "offer",
+          sdp: offer,
+        });
+      } finally {
+        makingOfferRef.current.set(remoteId, false);
+      }
     },
-    [getOrCreatePeer, localPlayerId, netClient],
+    [getOrCreatePeer, netClient],
   );
 
   const flushPendingCandidates = useCallback(async (remoteId: string) => {
@@ -210,8 +226,20 @@ export function useRoomMedia(
 
       if (!payload || !payload.kind) return;
       const pc = getOrCreatePeer(remoteId);
+      const polite = !!localPlayerId && localPlayerId > remoteId;
 
       if (payload.kind === "offer") {
+        const offerCollision =
+          makingOfferRef.current.get(remoteId) || pc.signalingState !== "stable";
+        ignoreOfferRef.current.set(remoteId, !polite && !!offerCollision);
+        if (ignoreOfferRef.current.get(remoteId)) return;
+        if (offerCollision) {
+          try {
+            await pc.setLocalDescription({ type: "rollback" });
+          } catch {
+            // Ignore rollback errors when local description is already clear.
+          }
+        }
         await pc.setRemoteDescription(
           new RTCSessionDescription(payload.sdp),
         );
@@ -240,6 +268,7 @@ export function useRoomMedia(
       }
 
       if (payload.kind === "candidate") {
+        if (ignoreOfferRef.current.get(remoteId)) return;
         if (!pc.remoteDescription) {
           const list = pendingCandidatesRef.current.get(remoteId) ?? [];
           list.push(payload.candidate);
@@ -260,7 +289,11 @@ export function useRoomMedia(
     if (netClient) return;
     peersRef.current.forEach((pc) => pc.close());
     peersRef.current.clear();
+    pendingSignalsRef.current.clear();
     pendingCandidatesRef.current.clear();
+    knownRemoteIdsRef.current.clear();
+    makingOfferRef.current.clear();
+    ignoreOfferRef.current.clear();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     setLocalStream(null);
@@ -276,6 +309,9 @@ export function useRoomMedia(
         pc.close();
         peersRef.current.delete(id);
         pendingCandidatesRef.current.delete(id);
+        knownRemoteIdsRef.current.delete(id);
+        makingOfferRef.current.delete(id);
+        ignoreOfferRef.current.delete(id);
         setRemoteStreams((prev) => {
           const next = new Map(prev);
           next.delete(id);
@@ -286,12 +322,29 @@ export function useRoomMedia(
   }, [remotePlayers]);
 
   useEffect(() => {
-    if (!videoEnabled && micMuted) return;
-    remotePlayers.forEach((_p, remoteId) => {
+    const known = knownRemoteIdsRef.current;
+    const activeMedia = !videoEnabled && !micMuted ? "audio" : videoEnabled ? "video" : null;
+    const remoteIds = Array.from(remotePlayers.keys());
+
+    for (const remoteId of remoteIds) {
+      if (known.has(remoteId)) continue;
+      known.add(remoteId);
+      if (!activeMedia) continue;
       void negotiate(remoteId);
       void applyPendingSignals(remoteId);
-    });
+    }
+
+    for (const id of Array.from(known)) {
+      if (!remotePlayers.has(id)) known.delete(id);
+    }
   }, [remotePlayers, videoEnabled, micMuted, negotiate, applyPendingSignals]);
+
+  useEffect(() => {
+    if (!videoEnabled && micMuted) return;
+    remotePlayers.forEach((_p, remoteId) => {
+      void applyPendingSignals(remoteId);
+    });
+  }, [remotePlayers, videoEnabled, micMuted, applyPendingSignals]);
 
   const toggleMic = useCallback(async () => {
     if (micMuted) {
@@ -310,12 +363,8 @@ export function useRoomMedia(
     stream?.getAudioTracks().forEach((t) => {
       t.enabled = false;
     });
-    removeTrackKindFromPeers("audio");
     setMicMuted(true);
     updateMediaState(true, videoEnabled);
-    remotePlayers.forEach((_p, remoteId) => {
-      void negotiate(remoteId);
-    });
   }, [
     micMuted,
     ensureLocalAudio,
@@ -324,7 +373,6 @@ export function useRoomMedia(
     videoEnabled,
     remotePlayers,
     negotiate,
-    removeTrackKindFromPeers,
   ]);
 
   const toggleVideo = useCallback(async () => {
@@ -369,6 +417,8 @@ export function useRoomMedia(
       peersRef.current.forEach((pc) => pc.close());
       peersRef.current.clear();
       pendingCandidatesRef.current.clear();
+      makingOfferRef.current.clear();
+      ignoreOfferRef.current.clear();
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       setRemoteStreams(new Map());
     },

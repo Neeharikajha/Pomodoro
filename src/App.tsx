@@ -13,14 +13,63 @@ import {
 } from "./net/client";
 import { useRoomMedia } from "./net/media";
 
+const SESSION_KEY = "cafe-sim:session";
+type RoutePath = "/lobby" | "/cafe-canvas";
+
+interface PersistedSession {
+  localPlayer: LocalPlayer;
+  roomId: RoomId;
+  mode: "create" | "join" | "random";
+}
+
+function normalizeRoute(pathname: string): RoutePath {
+  return pathname === "/cafe-canvas" ? "/cafe-canvas" : "/lobby";
+}
+
+function readSession(): PersistedSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedSession;
+    if (!parsed?.localPlayer?.id || !parsed?.roomId || !parsed?.mode) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(session: PersistedSession) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
 export default function App() {
+  const [route, setRoute] = useState<RoutePath>(() =>
+    normalizeRoute(window.location.pathname),
+  );
+  const [restoredSession] = useState<PersistedSession | null>(() =>
+    route === "/cafe-canvas" ? readSession() : null,
+  );
   const [timerDisplay, setTimerDisplay] = useState<string>("00:00");
   const [playerState, setPlayerState] = useState<PlayerState>("walking");
-  const [lobby, setLobby] = useState<LobbyState>({
-    phase: "lobby",
-    localPlayer: null,
-    roomId: null,
-    mode: null,
+  const [lobby, setLobby] = useState<LobbyState>(() => {
+    if (restoredSession) {
+      return {
+        phase: "game",
+        localPlayer: restoredSession.localPlayer,
+        roomId: restoredSession.roomId,
+        mode: restoredSession.mode,
+      };
+    }
+    return {
+      phase: "lobby",
+      localPlayer: null,
+      roomId: null,
+      mode: null,
+    };
   });
   const [remotePlayers, setRemotePlayers] = useState<Map<string, RemotePlayer>>(
     new Map(),
@@ -31,6 +80,17 @@ export default function App() {
   const mediaSignalHandlerRef = useRef<
     ((signal: WebRTCSignalMessage) => Promise<void>) | null
   >(null);
+
+  const navigate = useCallback((nextRoute: RoutePath, replace = false) => {
+    if (window.location.pathname !== nextRoute) {
+      if (replace) {
+        window.history.replaceState(null, "", nextRoute);
+      } else {
+        window.history.pushState(null, "", nextRoute);
+      }
+    }
+    setRoute(nextRoute);
+  }, []);
 
   const handleStateChange = useCallback(
     (state: PlayerState, display: string) => {
@@ -46,11 +106,28 @@ export default function App() {
     mediaSignalHandlerRef.current = media.handleSignal;
   }, [media.handleSignal]);
 
+  useEffect(() => {
+    if (window.location.pathname !== route) {
+      navigate(route, true);
+    }
+  }, [route, navigate]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setRoute(normalizeRoute(window.location.pathname));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, []);
+
   function handleEnter(
     player: LocalPlayer,
     roomId: RoomId,
     mode: "create" | "join" | "random",
   ) {
+    writeSession({ localPlayer: player, roomId, mode });
     const client = createNetClient(
       player,
       roomId,
@@ -64,7 +141,53 @@ export default function App() {
     );
     setNetClient(client);
     setLobby({ phase: "game", localPlayer: player, roomId, mode });
+    navigate("/cafe-canvas");
   }
+
+  useEffect(() => {
+    if (route !== "/cafe-canvas") return;
+    if (lobby.phase !== "game") return;
+    if (netClient) return;
+    if (!lobby.localPlayer || !lobby.roomId || !lobby.mode) return;
+
+    const client = createNetClient(
+      lobby.localPlayer,
+      lobby.roomId,
+      lobby.mode,
+      (players) => setRemotePlayers(new Map(players)),
+      {
+        onWebRTCSignal: (signal) => {
+          void mediaSignalHandlerRef.current?.(signal);
+        },
+      },
+    );
+    setNetClient(client);
+  }, [route, lobby, netClient]);
+
+  useEffect(() => {
+    if (lobby.phase === "game" && route !== "/cafe-canvas") {
+      navigate("/cafe-canvas", true);
+    }
+    if (lobby.phase === "lobby" && route !== "/lobby") {
+      navigate("/lobby", true);
+    }
+  }, [lobby.phase, route, navigate]);
+
+  useEffect(() => {
+    if (route !== "/cafe-canvas") return;
+    if (lobby.phase === "game") return;
+    const session = readSession();
+    if (!session) {
+      navigate("/lobby", true);
+      return;
+    }
+    setLobby({
+      phase: "game",
+      localPlayer: session.localPlayer,
+      roomId: session.roomId,
+      mode: session.mode,
+    });
+  }, [route, lobby.phase, navigate]);
 
   useEffect(() => {
     if (!netClient) return;
@@ -73,6 +196,13 @@ export default function App() {
       const id = netClient.getRoomId();
       if (id !== "__random__") {
         setResolvedRoomId(id);
+        if (lobby.localPlayer) {
+          writeSession({
+            localPlayer: lobby.localPlayer,
+            roomId: id,
+            mode: "join",
+          });
+        }
         clearInterval(interval);
       }
     }, 200);
@@ -80,17 +210,19 @@ export default function App() {
     return () => {
       clearInterval(interval);
     };
-  }, [netClient]);
+  }, [netClient, lobby.localPlayer]);
 
   function handleLeave() {
     netClient?.disconnect();
+    clearSession();
     setLobby({ phase: "lobby", localPlayer: null, roomId: null, mode: null });
     setRemotePlayers(new Map());
     setResolvedRoomId(null);
     setNetClient(null);
+    navigate("/lobby");
   }
 
-  if (lobby.phase === "lobby") {
+  if (route === "/lobby" || lobby.phase === "lobby") {
     return <RoomLobby onEnter={handleEnter} />;
   }
 
