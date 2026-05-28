@@ -25,8 +25,15 @@ function RemoteVideoTile({
   const ref = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (!ref.current || !stream) return;
+    if (!ref.current) return;
+    if (!stream) {
+      ref.current.srcObject = null;
+      return;
+    }
     ref.current.srcObject = stream;
+    return () => {
+      if (ref.current) ref.current.srcObject = null;
+    };
   }, [stream]);
 
   const hasLiveVideoTrack =
@@ -34,6 +41,8 @@ function RemoteVideoTile({
 
   const left = player.x + 36 - videoSize / 2;
   const top = player.y - videoSize - 24;
+
+  if (!hasLiveVideoTrack) return null;
 
   return (
     <div
@@ -44,26 +53,41 @@ function RemoteVideoTile({
       }}
     >
       <div className="rounded-lg overflow-hidden border border-stone-700 bg-black/80 shadow-lg">
-        {hasLiveVideoTrack ? (
-          <video
-            ref={ref}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-            style={{ height: videoSize * 0.75 }}
-          />
-        ) : (
-          <div
-            className="flex items-center justify-center text-xs text-stone-400"
-            style={{ height: videoSize * 0.75 }}
-          >
-            camera off
-          </div>
-        )}
+        <video
+          ref={ref}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+          style={{ height: videoSize * 0.75 }}
+        />
       </div>
     </div>
   );
+}
+
+function RemoteAudioSink({ stream }: { stream?: MediaStream }) {
+  const ref = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const hasLiveAudioTrack =
+      !!stream &&
+      stream.getAudioTracks().some((track) => track.readyState === "live" && track.enabled);
+    if (!hasLiveAudioTrack) {
+      el.srcObject = null;
+      return;
+    }
+    el.srcObject = stream;
+    void el.play().catch(() => {
+      // Browser autoplay policy may require user interaction first.
+    });
+    return () => {
+      el.srcObject = null;
+    };
+  }, [stream]);
+
+  return <audio ref={ref} autoPlay playsInline />;
 }
 
 function LocalPreview({ stream }: { stream: MediaStream | null }) {
@@ -140,6 +164,10 @@ export default function MediaOverlay({
           />
         ))}
       </div>
+
+      {remoteList.map((player) => (
+        <RemoteAudioSink key={`audio-${player.id}`} stream={remoteStreams.get(player.id)} />
+      ))}
 
       <LocalPreview stream={localStream} />
     </>

@@ -28,6 +28,27 @@ export function useRoomMedia(localPlayerId, netClient, remotePlayers) {
             }
         }
     }, []);
+    const removeTrackKindFromPeers = useCallback((kind) => {
+        for (const pc of peersRef.current.values()) {
+            const senders = pc.getSenders();
+            for (const sender of senders) {
+                if (sender.track?.kind === kind) {
+                    try {
+                        sender.replaceTrack(null);
+                    }
+                    catch {
+                        // Ignore sender replacement races.
+                    }
+                    try {
+                        pc.removeTrack(sender);
+                    }
+                    catch {
+                        // Ignore remove errors on already detached sender.
+                    }
+                }
+            }
+        }
+    }, []);
     const updateMediaState = useCallback((nextMuted, nextVideo) => {
         netClient?.sendMediaState(nextMuted, nextVideo);
     }, [netClient]);
@@ -234,8 +255,12 @@ export function useRoomMedia(localPlayerId, netClient, remotePlayers) {
         stream?.getAudioTracks().forEach((t) => {
             t.enabled = false;
         });
+        removeTrackKindFromPeers("audio");
         setMicMuted(true);
         updateMediaState(true, videoEnabled);
+        remotePlayers.forEach((_p, remoteId) => {
+            void negotiate(remoteId);
+        });
     }, [
         micMuted,
         ensureLocalAudio,
@@ -244,6 +269,7 @@ export function useRoomMedia(localPlayerId, netClient, remotePlayers) {
         videoEnabled,
         remotePlayers,
         negotiate,
+        removeTrackKindFromPeers,
     ]);
     const toggleVideo = useCallback(async () => {
         if (!videoEnabled) {
@@ -265,9 +291,13 @@ export function useRoomMedia(localPlayerId, netClient, remotePlayers) {
             t.stop();
             stream.removeTrack(t);
         });
+        removeTrackKindFromPeers("video");
         setVideoEnabled(false);
         setLocalStream(stream ? new MediaStream(stream.getTracks()) : null);
         updateMediaState(micMuted, false);
+        remotePlayers.forEach((_p, remoteId) => {
+            void negotiate(remoteId);
+        });
     }, [
         videoEnabled,
         ensureLocalVideo,
@@ -276,6 +306,7 @@ export function useRoomMedia(localPlayerId, netClient, remotePlayers) {
         micMuted,
         remotePlayers,
         negotiate,
+        removeTrackKindFromPeers,
     ]);
     useEffect(() => () => {
         peersRef.current.forEach((pc) => pc.close());

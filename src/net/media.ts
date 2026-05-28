@@ -54,6 +54,26 @@ export function useRoomMedia(
     }
   }, []);
 
+  const removeTrackKindFromPeers = useCallback((kind: "audio" | "video") => {
+    for (const pc of peersRef.current.values()) {
+      const senders = pc.getSenders();
+      for (const sender of senders) {
+        if (sender.track?.kind === kind) {
+          try {
+            sender.replaceTrack(null);
+          } catch {
+            // Ignore sender replacement races.
+          }
+          try {
+            pc.removeTrack(sender);
+          } catch {
+            // Ignore remove errors on already detached sender.
+          }
+        }
+      }
+    }
+  }, []);
+
   const updateMediaState = useCallback(
     (nextMuted: boolean, nextVideo: boolean) => {
       netClient?.sendMediaState(nextMuted, nextVideo);
@@ -284,8 +304,12 @@ export function useRoomMedia(
     stream?.getAudioTracks().forEach((t) => {
       t.enabled = false;
     });
+    removeTrackKindFromPeers("audio");
     setMicMuted(true);
     updateMediaState(true, videoEnabled);
+    remotePlayers.forEach((_p, remoteId) => {
+      void negotiate(remoteId);
+    });
   }, [
     micMuted,
     ensureLocalAudio,
@@ -294,6 +318,7 @@ export function useRoomMedia(
     videoEnabled,
     remotePlayers,
     negotiate,
+    removeTrackKindFromPeers,
   ]);
 
   const toggleVideo = useCallback(async () => {
@@ -315,9 +340,13 @@ export function useRoomMedia(
       t.stop();
       stream.removeTrack(t);
     });
+    removeTrackKindFromPeers("video");
     setVideoEnabled(false);
     setLocalStream(stream ? new MediaStream(stream.getTracks()) : null);
     updateMediaState(micMuted, false);
+    remotePlayers.forEach((_p, remoteId) => {
+      void negotiate(remoteId);
+    });
   }, [
     videoEnabled,
     ensureLocalVideo,
@@ -326,6 +355,7 @@ export function useRoomMedia(
     micMuted,
     remotePlayers,
     negotiate,
+    removeTrackKindFromPeers,
   ]);
 
   useEffect(
